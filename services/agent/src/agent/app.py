@@ -9,7 +9,6 @@ from typing import Any, Literal
 import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
-from ledgerlens_common.logging import REQUEST_ID_HEADER, configure_logging, new_request_id, request_id_var
 from ledgerlens_semantic.catalog import Term
 from ledgerlens_semantic.index import search
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -18,6 +17,7 @@ from pydantic_settings import BaseSettings
 
 from agent.planner import AdkPlanner, CatalogPlanner, Planner
 from agent.service import QueryResult, QueryService
+from ledgerlens_common.logging import REQUEST_ID_HEADER, configure_logging, new_request_id, request_id_var
 
 log = logging.getLogger("agent")
 
@@ -58,7 +58,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     planner = make_planner(s)
     retrieve("warm up", 1)  # load the embedding model + FAISS index before taking traffic
     app.state.mongo = mongo
-    app.state.service = QueryService(mongo[s.mongo_db], retrieve, planner, s.agent_max_rows, s.agent_timeout_ms)
+    app.state.service = QueryService(
+        mongo[s.mongo_db], retrieve, planner, s.agent_max_rows, s.agent_timeout_ms
+    )
     log.info("agent started", extra={"fields": {"planner": type(planner).__name__, "model": s.agent_model}})
     yield
     mongo.close()

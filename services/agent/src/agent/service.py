@@ -97,13 +97,29 @@ class QueryService:
     ) -> QueryResult:
         allowed = reason is None
         # Every query is audited, allowed or not, before the caller sees a response.
-        await self.db.audit_log.insert_one({
-            "user": user, "role": role, "question": question, "pipeline": pipeline,
-            "collection": plan.collection, "terms_used": [t.name for t in cited],
-            "planner": plan.planner, "allowed": allowed, "reason": reason,
-            "row_count": len(rows), "timestamp": datetime.now(UTC),
-        })  # fmt: skip
+        await self.db.audit_log.insert_one(
+            {
+                "user": user,
+                "role": role,
+                "question": question,
+                "pipeline": pipeline,
+                "collection": plan.collection,
+                "terms_used": [t.name for t in cited],
+                "planner": plan.planner,
+                "allowed": allowed,
+                "reason": reason,
+                "row_count": len(rows),
+                "timestamp": datetime.now(UTC),
+            }
+        )
         log.info("query", extra={"fields": {"allowed": allowed, "reason": reason, "planner": plan.planner}})
         answer = compose_answer(rows, cited) if allowed else f"Query rejected: {reason}"
-        return QueryResult(answer=answer, terms_used=[t.name for t in cited], pipeline=pipeline, rows=rows,
-                           allowed=allowed, planner=plan.planner, reason=reason)  # fmt: skip
+        return QueryResult(
+            answer=answer,
+            terms_used=[t.name for t in cited],
+            pipeline=pipeline,
+            rows=rows,
+            allowed=allowed,
+            planner=plan.planner,
+            reason=reason,
+        )

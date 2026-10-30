@@ -164,6 +164,18 @@ services:
     depends_on:
       gateway: { condition: service_healthy }
 
+  # Run-once nightly batch (`make spark`). In Kubernetes the same image runs as a CronJob.
+  spark-aggregates:
+    build: { context: jobs/spark_aggregates, target: runtime }
+    image: ledgerlens/spark-aggregates:dev
+    profiles: [spark]
+    environment:
+      MONGO_URI: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/?authSource=admin
+      MONGO_DB: ledgerlens
+    mem_limit: 2g
+    depends_on:
+      mongo: { condition: service_healthy }
+
 volumes:
   mongo-data:
   couchbase-data:

@@ -32,7 +32,7 @@ jobs:
       - name: Lint
         run: uv run ruff check . && uv run ruff format --check .
       - name: Type check
-        run: uv run mypy libs/common/src services/*/src
+        run: uv run mypy libs/common/src services/*/src semantic/src
       # GitHub-hosted Ubuntu runners have Docker, so testcontainers integration tests run here too.
       - name: Test
         run: uv run pytest --cov --cov-report=term-missing --cov-report=xml
@@ -54,6 +54,13 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npx ng test --watch=false
       - run: npx ng build
+
+  spark:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Spark transformation tests (inside the Spark image)
+        run: make test-spark
 
   images:
     needs: [python, frontend]

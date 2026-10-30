@@ -13,15 +13,32 @@ from collections.abc import Iterator
 from typing import Any
 
 READ_ONLY_STAGES = {
-    "$match", "$group", "$project", "$sort", "$limit", "$skip", "$count", "$unwind",
-    "$addFields", "$set", "$unset", "$bucket", "$sortByCount", "$facet", "$lookup", "$unionWith",
+    "$match",
+    "$group",
+    "$project",
+    "$sort",
+    "$limit",
+    "$skip",
+    "$count",
+    "$unwind",
+    "$addFields",
+    "$set",
+    "$unset",
+    "$bucket",
+    "$sortByCount",
+    "$facet",
+    "$lookup",
+    "$unionWith",
     "$replaceRoot",
-}  # fmt: skip
+}
 # Write stages and server-side JavaScript. Checked at every depth.
 FORBIDDEN_OPERATORS = {"$out", "$merge", "$function", "$where", "$accumulator"}
 ANALYST_COLLECTIONS = {
-    "transactions", "agg_daily_category_spend", "agg_merchant_flagged_rate", "agg_top_customers",
-}  # fmt: skip
+    "transactions",
+    "agg_daily_category_spend",
+    "agg_merchant_flagged_rate",
+    "agg_top_customers",
+}
 ADMIN_COLLECTIONS = ANALYST_COLLECTIONS | {"audit_log"}
 
 
