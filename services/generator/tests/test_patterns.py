@@ -52,3 +52,10 @@ def test_pattern_shapes():
 def test_currency_matches_country():
     for t, _ in generate(500):
         assert t.currency == COUNTRY_CURRENCY[t.country]
+
+
+def test_customers_are_stable_across_unseeded_runs():
+    a, b = TransactionFactory(seed=None), TransactionFactory(seed=None)
+    assert a.customers == b.customers
+    assert a.merchants == b.merchants
+    assert a.next_batch()[0][0].txn_id != b.next_batch()[0][0].txn_id

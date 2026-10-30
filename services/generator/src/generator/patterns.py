@@ -26,6 +26,7 @@ COUNTRY_CURRENCY = {"US": "USD", "GB": "GBP", "DE": "EUR", "FR": "EUR", "IN": "I
 FAR_APART = {"US": "SG", "GB": "AU", "DE": "JP", "FR": "AU", "IN": "CA",
              "JP": "GB", "SG": "US", "AU": "DE", "CA": "IN"}  # fmt: skip
 
+WORLD_SEED = 20261030
 # Pattern name -> number of transactions it emits.
 PATTERN_SIZES = {"velocity_burst": 8, "amount_spike": 1, "impossible_geography": 2}
 
@@ -42,18 +43,22 @@ Labelled = tuple[Transaction, str | None]  # (txn, suspicious pattern name or No
 
 class TransactionFactory:
     def __init__(self, seed: int | None = None, customers: int = 500, suspicious_rate: float = 0.03):
-        self.rng = random.Random(seed)
-        self.fake = Faker()
-        self.fake.seed_instance(seed)
+        # The "world" (customers' home countries and spend, merchant names) is fixed, so a
+        # customer looks the same across generator restarts and risk profiles stay meaningful.
+        # Only the transaction stream depends on `seed` (None = different every run).
+        world = random.Random(WORLD_SEED)
+        fake = Faker()
+        fake.seed_instance(WORLD_SEED)
         self.customers = [
             Customer(
                 customer_id=f"C{i:06d}",
-                country=self.rng.choice(list(COUNTRY_CURRENCY)),
-                mean_log_amount=self.rng.uniform(math.log(15), math.log(250)),
+                country=world.choice(list(COUNTRY_CURRENCY)),
+                mean_log_amount=world.uniform(math.log(15), math.log(250)),
             )
             for i in range(1, customers + 1)
         ]
-        self.merchants = {c: [self.fake.company() for _ in range(15)] for c in CATEGORIES}
+        self.merchants = {c: [fake.company() for _ in range(15)] for c in CATEGORIES}
+        self.rng = random.Random(seed)
         # A pattern emits k transactions, so to make `suspicious_rate` of all
         # *transactions* suspicious, solve f = pK / (pK + 1 - p) for the trigger prob p.
         k = sum(PATTERN_SIZES.values()) / len(PATTERN_SIZES)
