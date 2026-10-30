@@ -17,7 +17,7 @@ dev = [
 ]
 
 [tool.uv.workspace]
-members = ["libs/common", "services/generator", "services/ingest"]
+members = ["libs/common", "services/generator", "services/ingest", "services/gateway"]
 
 [tool.uv.sources]
 ledgerlens-common = { workspace = true }
@@ -25,6 +25,7 @@ ledgerlens-common = { workspace = true }
 [tool.ruff]
 line-length = 110
 target-version = "py312"
+# Explicit, so first-party import detection (isort) doesn't depend on which checkout ruff runs in.
 src = ["libs/common/src", "services/*/src"]
 
 [tool.ruff.lint]
@@ -40,7 +41,7 @@ ignore = ["S101"]  # assert is fine in tests and self-checks
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-mypy_path = "libs/common/src:services/generator/src:services/ingest/src"
+mypy_path = "libs/common/src:services/generator/src:services/ingest/src:services/gateway/src"
 explicit_package_bases = true
 
 [tool.pytest.ini_options]
