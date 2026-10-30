@@ -10,11 +10,12 @@ import uvicorn
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
-from ingest.pipeline import Ingestor, ensure_indexes
 from ledgerlens_common import TOPIC_RAW
 from ledgerlens_common.logging import REQUEST_ID_HEADER, configure_logging, new_request_id, request_id_var
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic_settings import BaseSettings
+
+from ingest.pipeline import Ingestor, ensure_indexes
 
 log = logging.getLogger("ingest")
 

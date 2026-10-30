@@ -6,10 +6,11 @@ import random
 import signal
 
 from aiokafka import AIOKafkaProducer
-from generator.patterns import TransactionFactory
 from ledgerlens_common import TOPIC_RAW
 from ledgerlens_common.logging import REQUEST_ID_HEADER, configure_logging, new_request_id
 from pydantic_settings import BaseSettings
+
+from generator.patterns import TransactionFactory
 
 log = logging.getLogger("generator")
 
