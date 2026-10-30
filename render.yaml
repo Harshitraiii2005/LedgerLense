@@ -1,0 +1,133 @@
+# Render Blueprint for a cloud demo of LedgerLens. Frontend goes to Vercel (frontend/vercel.json).
+# MongoDB is external (MongoDB Atlas free M0): you paste its URI when creating the Blueprint.
+# Plans: only web services can be free, and free web services can't RECEIVE private traffic but
+# can send it, so the gateway is free and everything it calls is a paid private service.
+# Render passes envVars to Docker builds as build args, which is how SERVICE picks the package.
+# See docs/cloud-deploy.md for the steps and caveats. NOT verified on a live Render account.
+
+envVarGroups:
+  - name: ledgerlens-shared
+    envVars:
+      - key: LOG_LEVEL
+        value: INFO
+      - key: COUCHBASE_USER
+        value: Administrator
+      - key: COUCHBASE_PASSWORD
+        generateValue: true
+
+services:
+  - type: web
+    name: ledgerlens-gateway
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health/live
+    envVars:
+      - key: SERVICE
+        value: gateway
+      - key: PORT
+        value: "8002"
+      - key: MONGO_URI
+        sync: false # MongoDB Atlas connection string
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DEV_MODE
+        value: "true" # dashboard login via POST /dev/token ...
+      - key: DEV_TOKEN_ROLES
+        value: analyst # ... analysts only; mint admin tokens with services/gateway/scripts/mint_token.py
+      - key: KAFKA_BOOTSTRAP
+        fromService: { type: pserv, name: ledgerlens-kafka, property: host } # port defaults to 9092
+      - key: RISK_URL
+        fromService: { type: pserv, name: ledgerlens-risk, property: hostport }
+      - key: AGENT_URL
+        fromService: { type: pserv, name: ledgerlens-agent, property: hostport }
+      - fromGroup: ledgerlens-shared
+
+  - type: pserv
+    name: ledgerlens-kafka
+    runtime: docker
+    plan: 1c-2g
+    dockerfilePath: ./deploy/render/kafka.Dockerfile
+    dockerContext: .
+
+  - type: pserv
+    name: ledgerlens-couchbase
+    runtime: docker
+    plan: 2c-4g
+    dockerfilePath: ./deploy/render/couchbase.Dockerfile
+    dockerContext: .
+    disk:
+      name: couchbase-data
+      mountPath: /opt/couchbase/var
+      sizeGB: 5
+    envVars:
+      - fromGroup: ledgerlens-shared
+
+  - type: pserv
+    name: ledgerlens-risk
+    runtime: docker
+    plan: 0.5c-512mb
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: SERVICE
+        value: risk
+      - key: PORT
+        value: "8001"
+      - key: MONGO_URI
+        sync: false
+      - key: KAFKA_BOOTSTRAP
+        fromService: { type: pserv, name: ledgerlens-kafka, property: host }
+      - key: COUCHBASE_URL # bare host is accepted; the risk service adds couchbase://
+        fromService: { type: pserv, name: ledgerlens-couchbase, property: host }
+      - fromGroup: ledgerlens-shared
+
+  - type: pserv
+    name: ledgerlens-agent
+    runtime: docker
+    plan: 1c-2g # torch + MiniLM embeddings don't fit in 512 MB
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: SERVICE
+        value: agent
+      - key: PORT
+        value: "8003"
+      - key: MONGO_URI
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false # optional: leave empty to use the deterministic catalog planner
+      - key: AGENT_MODEL
+        value: gemini-flash-latest
+      - fromGroup: ledgerlens-shared
+
+  - type: worker
+    name: ledgerlens-ingest
+    runtime: docker
+    plan: 0.5c-512mb
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: SERVICE
+        value: ingest
+      - key: MONGO_URI
+        sync: false
+      - key: KAFKA_BOOTSTRAP
+        fromService: { type: pserv, name: ledgerlens-kafka, property: host }
+      - fromGroup: ledgerlens-shared
+
+  - type: worker
+    name: ledgerlens-generator
+    runtime: docker
+    plan: 0.5c-512mb
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: SERVICE
+        value: generator
+      - key: GEN_RATE_PER_SEC
+        value: "2" # keep the demo's Atlas M0 (512 MB storage) from filling up
+      - key: KAFKA_BOOTSTRAP
+        fromService: { type: pserv, name: ledgerlens-kafka, property: host }
+      - fromGroup: ledgerlens-shared

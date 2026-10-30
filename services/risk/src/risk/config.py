@@ -6,7 +6,7 @@ clear log line, not silently flag everything (or nothing).
 
 from typing import Self
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     couchbase_user: str = "Administrator"
     couchbase_password: SecretStr = SecretStr("")
     couchbase_bucket: str = "ledgerlens"
+
+    @field_validator("couchbase_url")
+    @classmethod
+    def _default_scheme(cls, v: str) -> str:
+        return v if "://" in v else f"couchbase://{v}"  # Render hands out a bare host
     port: int = 8001
     log_level: str = "INFO"
 

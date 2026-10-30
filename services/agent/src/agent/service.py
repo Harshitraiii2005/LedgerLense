@@ -14,7 +14,7 @@ from pymongo.errors import ExecutionTimeout, OperationFailure
 
 from agent.guard import PipelineRejected, validate
 from agent.pii import mask
-from agent.planner import Planner
+from agent.planner import Plan, Planner
 
 log = logging.getLogger("agent.service")
 Retriever = Callable[[str, int], list[Term]]
@@ -71,7 +71,15 @@ class QueryService:
 
     async def ask(self, question: str, user: str, role: str) -> QueryResult:
         terms = self.retrieve(question, 4)
-        plan = await self.planner.plan(question, terms, role)
+        try:
+            plan = await self.planner.plan(question, terms, role)
+        except Exception as e:
+            # An LLM error or malformed output must not skip the audit trail.
+            log.exception("planner failed")
+            failed = Plan(
+                collection="", pipeline=None, terms_used=[], planner=getattr(self.planner, "name", "?")
+            )
+            return await self._finish(question, user, role, None, failed, terms[:1], [], f"planner: {e}")
         cited = [t for t in terms if t.name in plan.terms_used] or terms[:1]
         try:
             safe = validate(plan.collection, plan.pipeline, role, self.max_rows)

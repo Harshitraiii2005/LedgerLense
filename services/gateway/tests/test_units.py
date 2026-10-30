@@ -145,3 +145,20 @@ async def test_dev_token_route_absent_outside_dev_mode(app_factory):
         r = await c.post("/dev/token", json={"sub": "x", "role": "admin"})
     assert r.status_code == 404
     assert r.json()["code"] == "not_found"
+
+
+async def test_dev_token_role_allowlist(app_factory):
+    # Public demo config: analysts can self-issue, admins cannot.
+    app = app_factory(dev_mode=True, dev_token_roles="analyst")
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://gw") as c:
+        assert (await c.post("/dev/token", json={"sub": "a", "role": "analyst"})).status_code == 200
+        r = await c.post("/dev/token", json={"sub": "x", "role": "admin"})
+    assert r.status_code == 403
+    assert r.json()["code"] == "forbidden"
+
+
+def test_bare_host_port_upstreams_get_http_scheme():
+    from gateway.app import Settings
+
+    s = Settings(jwt_secret="x" * 32, risk_url="ledgerlens-risk:8001", agent_url="https://agent.example")
+    assert (s.risk_url, s.agent_url) == ("http://ledgerlens-risk:8001", "https://agent.example")

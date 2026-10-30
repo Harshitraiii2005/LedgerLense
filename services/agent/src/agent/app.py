@@ -10,7 +10,7 @@ import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from ledgerlens_semantic.catalog import Term
-from ledgerlens_semantic.index import search
+from ledgerlens_semantic.index import INDEX_DIR, build, search
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
@@ -56,6 +56,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     s: Settings = app.state.settings
     mongo: AsyncIOMotorClient[dict[str, Any]] = AsyncIOMotorClient(s.mongo_uri, serverSelectionTimeoutMS=5000)
     planner = make_planner(s)
+    if not (INDEX_DIR / "terms.json").exists():
+        build()  # containers: catalog is baked in, the index is built at first start
     retrieve("warm up", 1)  # load the embedding model + FAISS index before taking traffic
     app.state.mongo = mongo
     app.state.service = QueryService(

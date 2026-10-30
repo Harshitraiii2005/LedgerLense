@@ -60,3 +60,17 @@ async def test_allowed_query_masks_pii_and_audits(mongo_url):
     assert [r["customer_id"] for r in res.rows] == ["C0***00", "C0***01", "C0***02"]
     assert res.pipeline[-1] == {"$limit": 200}  # row cap appended by the guard
     assert await db.audit_log.count_documents({"user": "ana", "allowed": True}) == 1
+
+
+class BrokenPlanner:
+    name = "adk"
+
+    async def plan(self, question, terms, role):
+        raise ValueError("model returned invalid JSON")
+
+
+async def test_planner_failure_is_still_audited(mongo_url):
+    db = AsyncIOMotorClient(mongo_url)["agent_it3"]
+    res = await QueryService(db, retrieve, BrokenPlanner()).ask("anything", user="bob", role="analyst")
+    assert not res.allowed and res.reason.startswith("planner:")
+    assert await db.audit_log.count_documents({"user": "bob", "allowed": False}) == 1

@@ -192,3 +192,8 @@ def test_invalid_config_is_rejected(bad):
 def test_config_reads_env(monkeypatch):
     monkeypatch.setenv("RISK_FLAG_THRESHOLD", "70")
     assert Settings().risk_flag_threshold == 70
+
+
+def test_bare_couchbase_host_gets_scheme():
+    assert Settings(couchbase_url="ledgerlens-couchbase").couchbase_url == "couchbase://ledgerlens-couchbase"
+    assert Settings(couchbase_url="couchbases://cb.cloud").couchbase_url == "couchbases://cb.cloud"

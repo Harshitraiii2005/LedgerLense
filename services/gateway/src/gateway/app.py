@@ -12,12 +12,12 @@ from aiokafka import AIOKafkaConsumer
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from pydantic_settings import BaseSettings
 
 from gateway import v1, v2
 from gateway.auth import Role, mint_token
-from gateway.errors import install_error_handlers
+from gateway.errors import ApiError, install_error_handlers
 from gateway.repo import GATEWAY_INDEXES
 from gateway.stream import Broadcaster, consume_flagged, make_consumer
 from gateway.upstream import Upstream
@@ -34,11 +34,19 @@ class Settings(BaseSettings):
     kafka_bootstrap: str = "localhost:9092"
     risk_url: str = "http://localhost:8001"
     agent_url: str = "http://localhost:8003"
+
+    @field_validator("risk_url", "agent_url")
+    @classmethod
+    def _default_scheme(cls, v: str) -> str:
+        # Platforms like Render hand out bare "host:port" for private services.
+        return v if "://" in v else f"http://{v}"
     upstream_timeout_s: float = 3.0
     agent_timeout_s: float = 30.0  # LLM calls are slow
     upstream_retries: int = 3
     ws_queue_size: int = 100
     dev_mode: bool = False  # enables POST /dev/token; never set in a real deployment
+    # Roles /dev/token may mint. A public demo should allow "analyst" only; admins use scripts/mint_token.py.
+    dev_token_roles: str = "analyst,admin"  # noqa: S105 - role names, not a secret
     port: int = 8002
     log_level: str = "INFO"
 
@@ -140,6 +148,8 @@ def create_app(settings: Settings | None = None, *, use_lifespan: bool = True) -
         # Local/demo login for the dashboard. Registered only in dev mode, so it doesn't exist in prod.
         @app.post("/dev/token")
         async def dev_token(body: TokenRequest) -> dict[str, str]:
+            if body.role not in settings.dev_token_roles.split(","):
+                raise ApiError(403, "forbidden", f"role {body.role!r} cannot be self-issued here")
             return {
                 "access_token": mint_token(settings.jwt_secret, body.sub, body.role),
                 "token_type": "bearer",

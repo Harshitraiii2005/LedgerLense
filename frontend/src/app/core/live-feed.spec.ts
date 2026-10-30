@@ -38,7 +38,12 @@ describe('withBackoff', () => {
 
 describe('feedUrl', () => {
   it('uses wss on https and goes through the /api proxy', () => {
-    const url = feedUrl('t k', { protocol: 'https:', host: 'app.example' } as Location);
+    const url = feedUrl('t k', { protocol: 'https:', host: 'app.example' } as Location, null);
     expect(url).toBe('wss://app.example/api/v2/ws/flagged?token=t%20k');
+  });
+
+  it('connects straight to the gateway when a ws base is configured', () => {
+    const url = feedUrl('t', { protocol: 'https:', host: 'app.example' } as Location, 'wss://gw.example');
+    expect(url).toBe('wss://gw.example/v2/ws/flagged?token=t');
   });
 });

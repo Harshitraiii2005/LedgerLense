@@ -23,7 +23,8 @@ class Upstream:
         # retried only when the request provably never reached the server (connect failure);
         # a timed-out POST may already have run, so retrying it could e.g. double-write the audit log.
         idempotent = method == "GET"
-        headers = {REQUEST_ID_HEADER: request_id_var.get() or ""}
+        rid = request_id_var.get()
+        headers = {REQUEST_ID_HEADER: rid} if rid else {}
         for attempt in range(self.retries + 1):
             retryable = True
             try:

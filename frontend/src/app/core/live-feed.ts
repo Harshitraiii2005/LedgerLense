@@ -34,9 +34,20 @@ export function withBackoff<T>(onRetry: (attempt: number) => void): MonoTypeOper
     );
 }
 
-export function feedUrl(token: string, loc: Location = location): string {
+/**
+ * Optional `<meta name="ledgerlens-ws-base" content="wss://gateway.example">` override, for hosts
+ * that can't proxy WebSockets (Vercel rewrites). Unset/placeholder = same-origin /api proxy.
+ */
+export function wsBaseOverride(doc: Document = document): string | null {
+  const v = doc.querySelector<HTMLMetaElement>('meta[name="ledgerlens-ws-base"]')?.content ?? '';
+  return v.startsWith('ws') ? v.replace(/\/$/, '') : null;
+}
+
+export function feedUrl(token: string, loc: Location = location, base: string | null = wsBaseOverride()): string {
+  const q = `/v2/ws/flagged?token=${encodeURIComponent(token)}`;
+  if (base) return `${base}${q}`;
   const scheme = loc.protocol === 'https:' ? 'wss' : 'ws';
-  return `${scheme}://${loc.host}/api/v2/ws/flagged?token=${encodeURIComponent(token)}`;
+  return `${scheme}://${loc.host}/api${q}`;
 }
 
 @Injectable({ providedIn: 'root' })
