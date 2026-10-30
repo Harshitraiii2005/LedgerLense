@@ -1,0 +1,4 @@
+$ make eval  # PLANNER=catalog -> uv run python -u benchmarks/agent_eval.py --planner catalog (FAIL lines + summary; full per-question output in agent_eval_catalog.json)
+FAIL  What is the fraud rate for online transactions?  [merchant_flagged_rate]  expected 0.023809523809523808, got []
+FAIL  What is the alert rate for travel transactions?  [merchant_flagged_rate]  expected 0.02967359050445104, got []
+{"planner": "catalog", "questions": 35, "passed": 33, "accuracy": 0.943, "docs": 3000, "run_at": "2026-10-30T14:45:09.608430+00:00", "audit_entries_written": 35}

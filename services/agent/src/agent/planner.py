@@ -56,9 +56,16 @@ CHANNEL_WORDS = {
 }
 
 
-def slot_filters(question: str) -> dict[str, Any]:
-    """Extract simple equality filters (category, channel, currency, country) from the question."""
+def slot_filters(question: str, term: Term | None = None) -> dict[str, Any]:
+    """Extract simple equality filters (category, channel, currency, country) from the question.
+
+    The matched term's own name and synonyms are removed first, so "impossible travel"
+    doesn't also become category=travel.
+    """
     q = question.lower()
+    if term:
+        for phrase in [term.name.replace("_", " "), *term.synonyms]:
+            q = q.replace(phrase.lower(), " ")
     found: dict[str, Any] = {}
     for cat in get_args(Category):
         if re.search(rf"\b{cat.replace('_', '[ _]')}\b", q):
@@ -83,7 +90,7 @@ class CatalogPlanner:
         # Slot filters only make sense on the raw transactions collection.
         match = dict(term.filter or {})
         if term.source == "transactions":
-            match |= slot_filters(question)
+            match |= slot_filters(question, term)
         stages: list[dict[str, Any]] = [{"$match": match}] if match else []
         stages += term.pipeline or [{"$count": "count"}]
         return Plan(collection=term.source, pipeline=stages, terms_used=[term.name], planner=self.name)

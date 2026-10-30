@@ -62,3 +62,13 @@ def test_mask_by_key_and_by_value():
     assert out[1]["nested"]["user"] == "al*********st"
     assert out[2]["merchant"] == "Acme Ltd"
     assert out[2]["_id"]["customer_id"] == "C0***01"
+
+
+def test_slot_filters_ignore_term_words():
+    from ledgerlens_semantic.catalog import default_catalog
+
+    from agent.planner import slot_filters
+
+    term = default_catalog().get("impossible_travel")
+    assert slot_filters("How many impossible travel cases online?", term) == {"channel": "online"}
+    assert slot_filters("cash withdrawals in India paid in INR") == {"country": "IN", "currency": "INR"}

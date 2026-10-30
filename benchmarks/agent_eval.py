@@ -103,6 +103,14 @@ def monthly(recs: list[Rec]) -> dict[frozenset[str], float]:
     return {k: float(v) for k, v in out.items()}
 
 
+def top_risk_customers(recs: list[Rec]) -> set[str]:
+    best: dict[str, int] = defaultdict(int)
+    for r in recs:
+        best[r["customer_id"]] = max(best[r["customer_id"]], r["risk"]["score"])
+    top = max(best.values())
+    return {mask_value(c) for c, s in best.items() if s == top}  # rows come back PII-masked
+
+
 def tops(counter: Counter[str]) -> set[str]:
     best = max(counter.values())
     return {k for k, v in counter.items() if v == best}
@@ -204,13 +212,7 @@ QUESTIONS = [
     Q(
         "Which customer has the highest risk score?",
         "top1",
-        lambda d, n: {
-            mask_value(c)
-            for c, s in Counter(
-                {r["customer_id"]: r["risk"]["score"] for r in sorted(d, key=lambda r: r["risk"]["score"])}
-            ).items()
-            if s == max(r["risk"]["score"] for r in d)
-        },
+        lambda d, n: top_risk_customers(d),
     ),
     Q("Show monthly spend by currency", "grouped", lambda d, n: monthly(d)),
     Q("What is the monthly spend in GBP?", "grouped", lambda d, n: monthly(where(d, currency="GBP"))),

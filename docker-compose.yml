@@ -176,6 +176,27 @@ services:
     depends_on:
       mongo: { condition: service_healthy }
 
+  # Query agent. Needs the FAISS index on the host first: `make semantic-index`.
+  agent:
+    build: { context: ., args: { SERVICE: agent } }
+    image: ledgerlens/agent:dev
+    profiles: [ai]
+    ports: ["8003:8003"]
+    environment:
+      MONGO_URI: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/?authSource=admin
+      # The catalog and the index built from it travel together (the index checks the catalog hash).
+      SEMANTIC_CATALOG_PATH: /semantic/catalog.yaml
+      SEMANTIC_INDEX_DIR: /semantic/index
+      HF_HOME: /hf-cache
+      AGENT_MODEL: ${AGENT_MODEL:-gemini-flash-latest}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes: [./semantic:/semantic:ro, hf-cache:/hf-cache]
+    depends_on:
+      mongo: { condition: service_healthy }
+
 volumes:
   mongo-data:
   couchbase-data:
+  hf-cache:

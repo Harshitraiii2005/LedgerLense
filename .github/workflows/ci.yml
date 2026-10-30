@@ -76,6 +76,7 @@ jobs:
           - { service: ingest, context: . }
           - { service: risk, context: . }
           - { service: gateway, context: . }
+          - { service: agent, context: . }
           - { service: frontend, context: frontend }
     steps:
       - uses: actions/checkout@v7.0.1

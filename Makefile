@@ -1,7 +1,9 @@
 PROFILES ?= core
 COMPOSE := docker compose $(foreach p,$(PROFILES),--profile $(p))
 
-.PHONY: up down logs ps test test-unit test-spark lint fmt bench spark semantic-index
+PLANNER ?= catalog
+
+.PHONY: eval up down logs ps test test-unit test-spark lint fmt bench spark semantic-index
 
 .env:
 	cp .env.example .env
@@ -47,3 +49,8 @@ bench: .env ## needs `make up` (uses the compose Mongo); raw output saved under 
 	set -a && . ./.env && set +a && \
 	MONGO_URI="mongodb://$$MONGO_ROOT_USER:$$MONGO_ROOT_PASSWORD@localhost:27017/?authSource=admin" \
 	uv run python -u benchmarks/mongo_explain.py --docs 200000 | tee benchmarks/results/mongo_explain.stdout.txt
+
+eval: .env ## agent eval (PLANNER=catalog|adk; adk needs GOOGLE_API_KEY or ANTHROPIC_API_KEY + AGENT_MODEL)
+	set -a && . ./.env && set +a && \
+	MONGO_URI="mongodb://$$MONGO_ROOT_USER:$$MONGO_ROOT_PASSWORD@localhost:27017/?authSource=admin" \
+	uv run python -u benchmarks/agent_eval.py --planner $(PLANNER) | tee benchmarks/results/agent_eval_$(PLANNER).stdout.txt
