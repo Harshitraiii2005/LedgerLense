@@ -1,0 +1,227 @@
+# LedgerLens semantic layer: business terms the query agent may use.
+#
+# Each term maps business language to a concrete MongoDB definition:
+#   filter   - a $match fragment (rows that belong to the term)
+#   pipeline - read-only aggregation stages that compute the term (applied after `filter`)
+#   formula  - human-readable definition, used for embedding + answer citations
+# sensitivity: "pii" if the term exposes person-linked fields (customer_id, user). The agent masks these.
+# Amounts are per currency: never sum across currencies.
+# Risk fields only exist once the risk service has scored a transaction; a missing `risk` = not flagged.
+
+terms:
+  - name: transaction_volume
+    description: Number of transactions in a period, optionally split by channel or category.
+    source: transactions
+    fields: [timestamp, channel, category]
+    formula: count of transactions
+    pipeline: [{ $count: transaction_count }]
+    owner: payments-analytics
+    sensitivity: non-pii
+    synonyms: [transaction count, number of transactions, how many transactions, txn volume]
+
+  - name: flagged_transaction
+    description: A transaction the risk service flagged as suspicious (one or more rule hits above threshold).
+    source: transactions
+    fields: [risk.flagged, risk.reasons, risk.score]
+    formula: risk.flagged == true
+    filter: { risk.flagged: true }
+    owner: fraud-ops
+    sensitivity: non-pii
+    synonyms: [suspicious transaction, flagged txn, alert, fraud alert]
+
+  - name: high_risk_transaction
+    description: A transaction whose risk score is 70 or higher, regardless of whether it was flagged.
+    source: transactions
+    fields: [risk.score]
+    formula: risk.score >= 70
+    filter: { risk.score: { $gte: 70 } }
+    owner: fraud-ops
+    sensitivity: non-pii
+    synonyms: [risky transaction, high risk payment, dangerous transaction]
+
+  - name: flagged_rate
+    description: Share of transactions that were flagged, as a fraction between 0 and 1.
+    source: transactions
+    fields: [risk.flagged]
+    formula: count(risk.flagged == true) / count(all transactions)
+    pipeline:
+      - $group:
+          _id: null
+          total: { $sum: 1 }
+          flagged: { $sum: { $cond: [{ $eq: ["$risk.flagged", true] }, 1, 0] } }
+      - $project: { _id: 0, total: 1, flagged: 1, flagged_rate: { $divide: ["$flagged", "$total"] } }
+    owner: fraud-ops
+    sensitivity: non-pii
+    synonyms: [fraud rate, alert rate, percentage flagged, flag ratio]
+
+  - name: velocity_burst
+    description: Many transactions from one customer in a short window; flagged by the VELOCITY rule.
+    source: transactions
+    fields: [risk.reasons.code]
+    formula: risk.reasons contains code VELOCITY
+    filter: { risk.reasons.code: VELOCITY }
+    owner: fraud-ops
+    sensitivity: non-pii
+    synonyms: [rapid transactions, card testing, burst of payments, high frequency]
+
+  - name: amount_spike
+    description: A transaction far above the customer's usual spend; flagged by the AMOUNT_ZSCORE rule.
+    source: transactions
+    fields: [risk.reasons.code, amount]
+    formula: risk.reasons contains code AMOUNT_ZSCORE
+    filter: { risk.reasons.code: AMOUNT_ZSCORE }
+    owner: fraud-ops
+    sensitivity: non-pii
+    synonyms: [unusually large transaction, spending spike, abnormal amount, outlier amount]
+
+  - name: impossible_travel
+    description: Consecutive transactions from countries too far apart for the time between them; COUNTRY_JUMP rule.
+    source: transactions
+    fields: [risk.reasons.code, country]
+    formula: risk.reasons contains code COUNTRY_JUMP
+    filter: { risk.reasons.code: COUNTRY_JUMP }
+    owner: fraud-ops
+    sensitivity: non-pii
+    synonyms: [impossible geography, country jump, geo anomaly, cross border anomaly]
+
+  - name: active_customer
+    description: A customer with at least one transaction in the last 30 days.
+    source: transactions
+    fields: [customer_id, timestamp]
+    formula: distinct customer_id where timestamp >= now - 30 days
+    filter: { $expr: { $gte: ["$timestamp", { $dateSubtract: { startDate: "$$NOW", unit: day, amount: 30 } }] } }
+    pipeline: [{ $group: { _id: "$customer_id" } }, { $count: active_customers }]
+    owner: customer-analytics
+    sensitivity: pii
+    synonyms: [active users, active accounts, recent customers, monthly active customers]
+
+  - name: monthly_spend
+    description: Total amount spent per calendar month (UTC), per currency.
+    source: transactions
+    fields: [timestamp, amount, currency]
+    formula: sum(amount) grouped by month(timestamp), currency
+    pipeline:
+      - $group:
+          _id: { month: { $dateTrunc: { date: "$timestamp", unit: month } }, currency: "$currency" }
+          total_amount: { $sum: "$amount" }
+          transaction_count: { $sum: 1 }
+      - $sort: { _id.month: -1 }
+    owner: payments-analytics
+    sensitivity: non-pii
+    synonyms: [spend per month, monthly volume, monthly revenue, spending by month]
+
+  - name: customer_monthly_spend
+    description: Amount each customer spent per calendar month, per currency.
+    source: transactions
+    fields: [customer_id, timestamp, amount, currency]
+    formula: sum(amount) grouped by customer_id, month(timestamp), currency
+    pipeline:
+      - $group:
+          _id: { customer_id: "$customer_id", month: { $dateTrunc: { date: "$timestamp", unit: month } }, currency: "$currency" }
+          total_amount: { $sum: "$amount" }
+    owner: customer-analytics
+    sensitivity: pii
+    synonyms: [how much a customer spent, customer spending, spend by customer]
+
+  - name: average_ticket
+    description: Average transaction amount, per currency.
+    source: transactions
+    fields: [amount, currency]
+    formula: avg(amount) grouped by currency
+    pipeline: [{ $group: { _id: "$currency", average_amount: { $avg: "$amount" }, transaction_count: { $sum: 1 } } }]
+    owner: payments-analytics
+    sensitivity: non-pii
+    synonyms: [average transaction size, mean amount, avg ticket, average basket]
+
+  - name: channel_mix
+    description: Breakdown of transactions by channel (card_present, online, mobile, atm).
+    source: transactions
+    fields: [channel]
+    formula: count grouped by channel
+    pipeline: [{ $group: { _id: "$channel", transaction_count: { $sum: 1 } } }, { $sort: { transaction_count: -1 } }]
+    owner: payments-analytics
+    sensitivity: non-pii
+    synonyms: [transactions by channel, online vs in-store, payment channel split]
+
+  - name: cash_withdrawal
+    description: ATM cash withdrawals.
+    source: transactions
+    fields: [category, channel, amount]
+    formula: category == cash_withdrawal
+    filter: { category: cash_withdrawal }
+    owner: payments-analytics
+    sensitivity: non-pii
+    synonyms: [atm withdrawal, cash out, atm transactions]
+
+  - name: top_merchants
+    description: Merchants ranked by number of transactions.
+    source: transactions
+    fields: [merchant]
+    formula: count grouped by merchant, sorted descending
+    pipeline: [{ $group: { _id: "$merchant", transaction_count: { $sum: 1 } } }, { $sort: { transaction_count: -1 } }, { $limit: 10 }]
+    owner: merchant-analytics
+    sensitivity: non-pii
+    synonyms: [busiest merchants, most popular merchants, merchant ranking, biggest merchants]
+
+  - name: customer_risk_score
+    description: Per-customer risk summary - highest and average risk score across their scored transactions.
+    source: transactions
+    fields: [customer_id, risk.score]
+    formula: max(risk.score), avg(risk.score) grouped by customer_id
+    filter: { risk.score: { $exists: true } }
+    pipeline:
+      - $group: { _id: "$customer_id", max_score: { $max: "$risk.score" }, avg_score: { $avg: "$risk.score" } }
+      - $sort: { max_score: -1 }
+    owner: fraud-ops
+    sensitivity: pii
+    synonyms: [riskiest customers, customer risk, risky customers, risk by customer]
+
+  - name: daily_category_spend
+    description: Precomputed nightly - total spend and count per day, category and currency (Spark job).
+    source: agg_daily_category_spend
+    fields: [day, category, currency, txn_count, total_amount, computed_at]
+    formula: sum(amount), count(*) grouped by date(timestamp), category, currency
+    pipeline: [{ $sort: { day: -1, total_amount: -1 } }]
+    owner: payments-analytics
+    sensitivity: non-pii
+    synonyms: [spend by category, category breakdown, daily spending, spend per category per day]
+
+  - name: merchant_flagged_rate
+    description: Precomputed nightly - per merchant, total transactions, flagged transactions and flagged rate (Spark job).
+    source: agg_merchant_flagged_rate
+    fields: [merchant, total_txns, flagged_txns, flagged_rate, computed_at]
+    formula: count(flagged) / count(*) grouped by merchant
+    pipeline: [{ $sort: { flagged_rate: -1, total_txns: -1 } }]
+    owner: merchant-analytics
+    sensitivity: non-pii
+    synonyms: [riskiest merchants, merchant fraud rate, merchants with most alerts]
+
+  - name: top_customers_by_volume
+    description: Precomputed nightly - customers ranked by number of transactions, with amounts per currency (Spark job).
+    source: agg_top_customers
+    fields: [customer_id, rank, txn_count, amounts, computed_at]
+    formula: rank by count(*) grouped by customer_id; amounts = sum(amount) per currency
+    pipeline: [{ $sort: { rank: 1 } }]
+    owner: customer-analytics
+    sensitivity: pii
+    synonyms: [biggest customers, most active customers, top spenders, highest volume customers]
+
+  - name: agent_query_audit
+    description: Audit trail of natural-language questions asked to the query agent and the pipelines it ran.
+    source: audit_log
+    fields: [user, role, question, pipeline, allowed, timestamp]
+    formula: all audit_log entries
+    pipeline: [{ $sort: { timestamp: -1 } }]
+    owner: platform-security
+    sensitivity: pii
+    synonyms: [audit log, who asked what, agent history, query log]
+
+  - name: rejected_agent_query
+    description: Agent queries whose generated pipeline was rejected by the read-only allowlist.
+    source: audit_log
+    fields: [user, question, pipeline, allowed, reason, timestamp]
+    formula: allowed == false
+    filter: { allowed: false }
+    owner: platform-security
+    sensitivity: pii
+    synonyms: [blocked queries, denied pipelines, rejected requests]

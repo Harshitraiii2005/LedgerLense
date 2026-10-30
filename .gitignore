@@ -10,3 +10,4 @@ htmlcov/
 .pytest_cache/
 node_modules/
 dist/
+semantic/index/
