@@ -17,7 +17,7 @@ dev = [
 ]
 
 [tool.uv.workspace]
-members = ["libs/common", "services/generator", "services/ingest", "services/gateway"]
+members = ["libs/common", "services/generator", "services/ingest", "services/gateway", "services/agent"]
 
 [tool.uv.sources]
 ledgerlens-common = { workspace = true }
