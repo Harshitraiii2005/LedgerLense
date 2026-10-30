@@ -1,0 +1,35 @@
+global:
+  secretName: ledgerlens-secrets # created by `make deploy-local` from .env; never committed
+  kafkaBootstrap: kafka:9092
+  kafkaToolsImage: apache/kafka:3.9.1
+  kafkaToolsRunAsUser: 1000 # appuser in apache/kafka; set to null on OpenShift
+
+image:
+  repository: ledgerlens/agent
+  tag: dev
+  pullPolicy: IfNotPresent
+
+replicas: 1
+port: 8003
+probes: { liveness: /health/live, readiness: /health/ready }
+service: { type: ClusterIP, nodePort: null }
+writablePaths: [/tmp]
+waitForTopics: []
+
+config:
+  MONGO_DB: ledgerlens
+  AGENT_PLANNER: auto # adk if an LLM key is in the Secret, else the deterministic catalog planner
+  AGENT_MODEL: gemini-flash-latest # or a claude-* model id (then ANTHROPIC_API_KEY is used)
+  LOG_LEVEL: INFO
+
+secretEnv:
+  MONGO_URI: MONGO_URI
+  GOOGLE_API_KEY: GOOGLE_API_KEY
+  ANTHROPIC_API_KEY: ANTHROPIC_API_KEY
+optionalSecretEnv: [GOOGLE_API_KEY, ANTHROPIC_API_KEY] # both optional: no key = catalog planner
+
+resources:
+  requests: { cpu: 100m, memory: 768Mi } # torch + MiniLM + FAISS; the index is built into /tmp at first start
+  limits: { cpu: 1000m, memory: 2Gi }
+
+hpa: { enabled: false }

@@ -3,7 +3,7 @@ COMPOSE := docker compose $(foreach p,$(PROFILES),--profile $(p))
 
 PLANNER ?= catalog
 
-.PHONY: eval up down logs ps test test-unit test-spark lint fmt bench spark semantic-index
+.PHONY: eval up down logs ps test test-unit test-spark lint fmt bench spark semantic-index deploy-local undeploy-local smoke helm-lint
 
 .env:
 	cp .env.example .env
@@ -54,3 +54,15 @@ eval: .env ## agent eval (PLANNER=catalog|adk; adk needs GOOGLE_API_KEY or ANTHR
 	set -a && . ./.env && set +a && \
 	MONGO_URI="mongodb://$$MONGO_ROOT_USER:$$MONGO_ROOT_PASSWORD@localhost:27017/?authSource=admin" \
 	uv run python -u benchmarks/agent_eval.py --planner $(PLANNER) | tee benchmarks/results/agent_eval_$(PLANNER).stdout.txt
+
+deploy-local: .env ## kind cluster + images + Secret from .env + umbrella chart + smoke test
+	scripts/deploy_local.sh
+
+undeploy-local:
+	kind delete cluster --name ledgerlens
+
+smoke: .env ## re-run the post-deploy smoke test against the current kube context
+	set -a && . ./.env && set +a && scripts/smoke_test.sh
+
+helm-lint: ## helm lint + kubeconform for every chart and overlay (no cluster needed)
+	scripts/helm_check.sh

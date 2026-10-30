@@ -1,0 +1,111 @@
+{{- if .Values.couchbase.enabled }}
+# Couchbase Server CE, single node (data + index + query). The Couchbase Autonomous Operator
+# targets Enterprise Edition, so CE runs as a plain StatefulSet + one-time init Job.
+apiVersion: v1
+kind: Service
+metadata:
+  name: couchbase
+  labels: { app.kubernetes.io/name: couchbase, app.kubernetes.io/part-of: ledgerlens }
+spec:
+  selector: { app.kubernetes.io/name: couchbase }
+  ports:
+    - { name: rest, port: 8091, targetPort: 8091 } # cluster manager / bootstrap over HTTP
+    - { name: views, port: 8092, targetPort: 8092 }
+    - { name: query, port: 8093, targetPort: 8093 } # SQL++
+    - { name: kv, port: 11210, targetPort: 11210 } # SDK key-value
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: couchbase
+  labels: { app.kubernetes.io/name: couchbase, app.kubernetes.io/part-of: ledgerlens }
+spec:
+  serviceName: couchbase
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: couchbase }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: couchbase, app.kubernetes.io/part-of: ledgerlens }
+    spec:
+      # The image's runit entrypoint starts as root and drops to the `couchbase` user itself,
+      # so this is the one pod that can't set runAsNonRoot (see deploy/openshift/README.md).
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: couchbase
+          image: {{ .Values.couchbase.image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: rest, containerPort: 8091 }
+            - { name: views, containerPort: 8092 }
+            - { name: query, containerPort: 8093 }
+            - { name: kv, containerPort: 11210 }
+          readinessProbe:
+            httpGet: { path: /ui/index.html, port: rest }
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /ui/index.html, port: rest }
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          resources: {{- toYaml .Values.couchbase.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - { name: data, mountPath: /opt/couchbase/var }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- with .Values.storageClassName }}
+        storageClassName: {{ . }}
+        {{- end }}
+        resources: { requests: { storage: {{ .Values.couchbase.storage }} } }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: couchbase-init
+  labels: { app.kubernetes.io/name: couchbase-init, app.kubernetes.io/part-of: ledgerlens }
+data:
+  # Copy of services/risk/couchbase-init.sh (Helm can't read files outside the chart directory).
+  init.sh: |
+{{ .Files.Get "files/couchbase-init.sh" | indent 4 }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: couchbase-init
+  labels: { app.kubernetes.io/name: couchbase-init, app.kubernetes.io/part-of: ledgerlens }
+spec:
+  backoffLimit: 10
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: init
+          image: {{ .Values.couchbase.image }} # has couchbase-cli and curl
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "/scripts/init.sh"]
+          env:
+            - { name: CB_HOST, value: couchbase }
+            - name: CB_USER
+              valueFrom: { secretKeyRef: { name: {{ .Values.global.secretName }}, key: COUCHBASE_USER } }
+            - name: CB_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ .Values.global.secretName }}, key: COUCHBASE_PASSWORD } }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+      volumes:
+        - name: scripts
+          configMap: { name: couchbase-init }
+{{- end }}

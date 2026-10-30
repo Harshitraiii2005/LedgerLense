@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     def _default_scheme(cls, v: str) -> str:
         # Platforms like Render hand out bare "host:port" for private services.
         return v if "://" in v else f"http://{v}"
+
     upstream_timeout_s: float = 3.0
     agent_timeout_s: float = 30.0  # LLM calls are slow
     upstream_retries: int = 3

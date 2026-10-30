@@ -11,3 +11,5 @@ htmlcov/
 node_modules/
 dist/
 semantic/index/
+# vendored Helm dependencies (rebuilt by scripts/helm_deps.sh; Chart.lock is committed)
+deploy/helm/*/charts/

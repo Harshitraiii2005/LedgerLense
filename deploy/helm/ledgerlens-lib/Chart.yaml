@@ -1,0 +1,5 @@
+apiVersion: v2
+name: ledgerlens-lib
+description: "Shared templates for LedgerLens service charts (Deployment, Service, ConfigMap, HPA, CronJob)."
+type: library
+version: 0.1.0

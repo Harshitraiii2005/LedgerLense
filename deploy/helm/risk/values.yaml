@@ -1,0 +1,43 @@
+global:
+  secretName: ledgerlens-secrets # created by `make deploy-local` from .env; never committed
+  kafkaBootstrap: kafka:9092
+  kafkaToolsImage: apache/kafka:3.9.1
+  kafkaToolsRunAsUser: 1000 # appuser in apache/kafka; set to null on OpenShift
+
+image:
+  repository: ledgerlens/risk
+  tag: dev
+  pullPolicy: IfNotPresent
+
+replicas: 1
+port: 8001
+probes: { liveness: /health/live, readiness: /health/ready }
+service: { type: ClusterIP, nodePort: null }
+writablePaths: [/tmp] # gunicorn worker heartbeat files
+waitForTopics: [transactions.validated, transactions.flagged]
+
+# Rule thresholds live here on purpose: they're tunable without a rebuild, and the
+# service validates them at startup (a bad value fails fast instead of mis-scoring).
+config:
+  KAFKA_BOOTSTRAP: kafka:9092
+  MONGO_DB: ledgerlens
+  COUCHBASE_URL: couchbase://couchbase
+  COUCHBASE_BUCKET: ledgerlens
+  LOG_LEVEL: INFO
+  RISK_VELOCITY_WINDOW_S: "20"
+  RISK_VELOCITY_MAX_TXNS: "5"
+  RISK_ZSCORE_THRESHOLD: "3.5"
+  RISK_ZSCORE_MIN_HISTORY: "10"
+  RISK_COUNTRY_WINDOW_S: "7200"
+  RISK_FLAG_THRESHOLD: "50"
+
+secretEnv:
+  MONGO_URI: MONGO_URI
+  COUCHBASE_USER: COUCHBASE_USER
+  COUCHBASE_PASSWORD: COUCHBASE_PASSWORD
+
+resources:
+  requests: { cpu: 100m, memory: 192Mi }
+  limits: { cpu: 500m, memory: 384Mi }
+
+hpa: { enabled: false }

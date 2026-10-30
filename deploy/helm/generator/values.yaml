@@ -1,0 +1,29 @@
+global:
+  secretName: ledgerlens-secrets # created by `make deploy-local` from .env; never committed
+  kafkaBootstrap: kafka:9092
+  kafkaToolsImage: apache/kafka:3.9.1
+  kafkaToolsRunAsUser: 1000 # appuser in apache/kafka; set to null on OpenShift
+
+image:
+  repository: ledgerlens/generator
+  tag: dev
+  pullPolicy: IfNotPresent
+
+replicas: 1
+port: null # worker: no Service, no HTTP probes; a crash restarts the pod
+service: { type: ClusterIP, nodePort: null }
+writablePaths: [/tmp]
+waitForTopics: [transactions.raw]
+
+config:
+  KAFKA_BOOTSTRAP: kafka:9092
+  GEN_RATE_PER_SEC: "20"
+  LOG_LEVEL: INFO
+
+secretEnv: {}
+
+resources:
+  requests: { cpu: 50m, memory: 96Mi }
+  limits: { cpu: 250m, memory: 192Mi }
+
+hpa: { enabled: false }

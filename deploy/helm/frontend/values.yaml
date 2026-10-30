@@ -1,0 +1,28 @@
+global:
+  secretName: ledgerlens-secrets # created by `make deploy-local` from .env; never committed
+  kafkaBootstrap: kafka:9092
+  kafkaToolsImage: apache/kafka:3.9.1
+  kafkaToolsRunAsUser: 1000 # appuser in apache/kafka; set to null on OpenShift
+
+image:
+  repository: ledgerlens/frontend
+  tag: dev
+  pullPolicy: IfNotPresent
+
+replicas: 1
+port: 8080
+probes: { liveness: /, readiness: / }
+service: { type: ClusterIP, nodePort: null }
+writablePaths: [/tmp, /var/cache/nginx] # nginx-unprivileged keeps its pid + temp files here
+waitForTopics: []
+
+config:
+  GATEWAY_URL: http://gateway:8002
+
+secretEnv: {}
+
+resources:
+  requests: { cpu: 20m, memory: 32Mi }
+  limits: { cpu: 200m, memory: 64Mi }
+
+hpa: { enabled: false }

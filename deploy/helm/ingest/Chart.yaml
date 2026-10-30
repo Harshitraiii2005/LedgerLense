@@ -1,0 +1,10 @@
+apiVersion: v2
+name: ingest
+description: "Kafka transactions.raw -> validate -> MongoDB (FastAPI + aiokafka)."
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: ledgerlens-lib
+    version: 0.1.0
+    repository: file://../ledgerlens-lib

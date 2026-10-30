@@ -1,0 +1,33 @@
+global:
+  secretName: ledgerlens-secrets # needs MONGO_ROOT_USER, MONGO_ROOT_PASSWORD, COUCHBASE_USER, COUCHBASE_PASSWORD
+
+storageClassName: "" # "" = cluster default (kind: local-path "standard")
+
+kafka:
+  enabled: true
+  image: apache/kafka:3.9.1
+  storage: 2Gi
+  partitions: 6
+  topics: [transactions.raw, transactions.validated, transactions.dlq, transactions.flagged]
+  heap: -Xms384m -Xmx384m
+  resources:
+    requests: { cpu: 200m, memory: 640Mi }
+    limits: { cpu: "1", memory: 896Mi }
+
+mongo:
+  enabled: true
+  image: mongo:8.0.34
+  storage: 2Gi
+  wiredTigerCacheGB: "0.25" # default is ~50% of node RAM, far beyond the container limit
+  resources:
+    requests: { cpu: 200m, memory: 512Mi }
+    limits: { cpu: "1", memory: 768Mi }
+
+couchbase:
+  enabled: true
+  image: couchbase/server:community-8.0.0
+  storage: 2Gi
+  # Cluster RAM quotas set by the init script: data 512Mi + index 256Mi, plus process overhead.
+  resources:
+    requests: { cpu: 300m, memory: 1280Mi }
+    limits: { cpu: "2", memory: 1536Mi }

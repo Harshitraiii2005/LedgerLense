@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     @classmethod
     def _default_scheme(cls, v: str) -> str:
         return v if "://" in v else f"couchbase://{v}"  # Render hands out a bare host
+
     port: int = 8001
     log_level: str = "INFO"
 

@@ -1,0 +1,27 @@
+dependencies:
+- name: infra
+  repository: file://../infra
+  version: 0.1.0
+- name: ingest
+  repository: file://../ingest
+  version: 0.1.0
+- name: generator
+  repository: file://../generator
+  version: 0.1.0
+- name: risk
+  repository: file://../risk
+  version: 0.1.0
+- name: gateway
+  repository: file://../gateway
+  version: 0.1.0
+- name: agent
+  repository: file://../agent
+  version: 0.1.0
+- name: frontend
+  repository: file://../frontend
+  version: 0.1.0
+- name: spark-aggregates
+  repository: file://../spark-aggregates
+  version: 0.1.0
+digest: sha256:0677ec9fa83d6890e7b695693639c498f663212b8a43fbf17520780f6bfa6ea4
+generated: "2026-10-30T20:09:18.144+05:30"

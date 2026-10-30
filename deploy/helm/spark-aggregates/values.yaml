@@ -1,0 +1,27 @@
+global:
+  secretName: ledgerlens-secrets # created by `make deploy-local` from .env; never committed
+  kafkaBootstrap: kafka:9092
+  kafkaToolsImage: apache/kafka:3.9.1
+  kafkaToolsRunAsUser: 1000 # appuser in apache/kafka; set to null on OpenShift
+
+image:
+  repository: ledgerlens/spark-aggregates
+  tag: dev
+  pullPolicy: IfNotPresent
+
+schedule: "0 2 * * *" # 02:00 every night (cluster timezone, normally UTC)
+writablePaths: [/tmp] # spark.local.dir + Python temp files
+waitForTopics: []
+
+config:
+  MONGO_DB: ledgerlens
+  TOP_N: "100"
+  HOME: /tmp # the Spark image's uid 185 / an arbitrary OpenShift UID has no writable home dir
+
+secretEnv:
+  MONGO_URI: MONGO_URI
+
+# local[2] with a 1g driver (see jobs/spark_aggregates/Dockerfile CMD) + JVM overhead.
+resources:
+  requests: { cpu: 500m, memory: 1Gi }
+  limits: { cpu: 2000m, memory: 2Gi }

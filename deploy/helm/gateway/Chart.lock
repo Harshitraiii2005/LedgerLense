@@ -1,0 +1,6 @@
+dependencies:
+- name: ledgerlens-lib
+  repository: file://../ledgerlens-lib
+  version: 0.1.0
+digest: sha256:5092ff5f62e7abeb2ec7ffed8c26891a37d587624e393b2136dd95536cb021cd
+generated: "2026-10-30T20:09:18.024098+05:30"

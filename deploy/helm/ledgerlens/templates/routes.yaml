@@ -1,0 +1,34 @@
+{{- /* OpenShift only: Routes give the gateway and dashboard public HTTPS URLs (TLS terminated at the router). */ -}}
+{{- if .Values.openshift.routes.enabled }}
+{{- range $svc := list "gateway" "frontend" }}
+{{- if (index $.Values $svc).enabled }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $svc }}
+  labels:
+    app.kubernetes.io/name: {{ $svc }}
+    app.kubernetes.io/part-of: ledgerlens
+  {{- if eq $svc "gateway" }}
+  annotations:
+    # WebSocket (/v2/ws/flagged) connections are long-lived; the default router timeout is 30s.
+    haproxy.router.openshift.io/timeout: 1h
+  {{- end }}
+spec:
+  {{- with $.Values.openshift.routes.host }}
+  host: {{ $svc }}.{{ . }}
+  {{- end }}
+  to:
+    kind: Service
+    name: {{ $svc }}
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+{{- end }}
+{{- end }}
+{{- end }}
