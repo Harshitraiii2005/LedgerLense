@@ -1,0 +1,2 @@
+A rules engine (in-process, no I/O): {"txns": 100000, "txns_per_s": 94164, "flagged": 2986}
+B score_and_update (Couchbase KV get + CAS write): {"txns": 10000, "txns_per_s": 2167, "p50_ms": 0.407, "p95_ms": 0.77, "p99_ms": 1.116}

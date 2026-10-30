@@ -1,0 +1,58 @@
+{
+  "run_at": "2026-10-30T14:53:05.858127+00:00",
+  "live_transactions": 58281,
+  "page_size": 50,
+  "requests_per_scenario": 400,
+  "concurrency": 16,
+  "results": [
+    {
+      "version": "v1 offset",
+      "depth_rows": 0,
+      "p50_ms": 26.6,
+      "p95_ms": 40.08,
+      "p99_ms": 59.66,
+      "req_per_s": 552.3
+    },
+    {
+      "version": "v2 cursor",
+      "depth_rows": 0,
+      "p50_ms": 15.83,
+      "p95_ms": 45.08,
+      "p99_ms": 72.82,
+      "req_per_s": 781.4
+    },
+    {
+      "version": "v1 offset",
+      "depth_rows": 2450,
+      "p50_ms": 34.1,
+      "p95_ms": 56.09,
+      "p99_ms": 65.49,
+      "req_per_s": 436.6
+    },
+    {
+      "version": "v2 cursor",
+      "depth_rows": 2450,
+      "p50_ms": 20.16,
+      "p95_ms": 65.63,
+      "p99_ms": 106.29,
+      "req_per_s": 584.1
+    },
+    {
+      "version": "v1 offset",
+      "depth_rows": 9950,
+      "p50_ms": 63.42,
+      "p95_ms": 84.62,
+      "p99_ms": 99.18,
+      "req_per_s": 252.4
+    },
+    {
+      "version": "v2 cursor",
+      "depth_rows": 9950,
+      "p50_ms": 20.92,
+      "p95_ms": 67.54,
+      "p99_ms": 102.11,
+      "req_per_s": 550.2
+    }
+  ],
+  "setup": "one local gateway process (uvicorn, 1 worker) + compose MongoDB 8.0.34 in Docker Desktop (8 GB), load generator on the same Apple Silicon 10 CPU / 16 GB laptop"
+}

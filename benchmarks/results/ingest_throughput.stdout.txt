@@ -1,0 +1,17 @@
+producer: 50000 msgs in 0.55s = 91648 msg/s
+ingest drain: 50000 docs in 1.56s = 32145 msg/s (includes consumer group join)
+{
+  "run_at": "2026-10-30T14:52:16.325009+00:00",
+  "n": 50000,
+  "producer_msgs_per_s": 91648,
+  "ingest_drain_msgs_per_s": 32145,
+  "latency_run": {
+    "rate_msgs_per_s": 500.0,
+    "messages": 10000,
+    "p50_ms": 1.4,
+    "p95_ms": 2.8,
+    "p99_ms": 15.3,
+    "max_ms": 63.2
+  },
+  "setup": "single-node Kafka 3.9.1 (6 partitions), MongoDB 8.0.34, Docker Desktop 8 GB, Apple Silicon 10 CPU / 16 GB laptop; one Ingestor process; live stack running alongside"
+}
