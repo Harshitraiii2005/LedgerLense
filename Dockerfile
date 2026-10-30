@@ -7,7 +7,8 @@ FROM ghcr.io/astral-sh/uv:0.12.2 AS uv
 FROM python:3.12.16-slim AS build
 COPY --from=uv /uv /bin/uv
 ARG SERVICE
-ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never
+# Long HTTP timeout: large wheels (torch, litellm) on slow links otherwise fail at the 30s default.
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never UV_HTTP_TIMEOUT=600
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
 COPY libs libs
