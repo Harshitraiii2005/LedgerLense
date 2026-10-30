@@ -18,7 +18,17 @@ jobs:
           version: "0.12.2"
           python-version: "3.12"
           enable-cache: true
-      - run: uv sync --frozen --all-packages # install every workspace member, not just the root
+      # --all-packages: the workspace root has no deps of its own; install every service.
+      - run: uv sync --frozen --all-packages
+      # Couchbase needs fixed ports (its cluster map advertises them), so it runs as a plain
+      # container rather than via testcontainers. Used by the risk integration tests.
+      - name: Start Couchbase
+        run: |
+          docker run -d --name couchbase -p 8091-8097:8091-8097 -p 11210:11210 couchbase/server:community-8.0.0
+          docker cp services/risk/couchbase-init.sh couchbase:/init.sh
+          docker exec -e CB_USER=Administrator -e CB_PASSWORD=ci-password couchbase sh /init.sh
+          echo "COUCHBASE_TEST_URL=couchbase://localhost" >> "$GITHUB_ENV"
+          echo "COUCHBASE_TEST_PASSWORD=ci-password" >> "$GITHUB_ENV"
       - name: Lint
         run: uv run ruff check . && uv run ruff format --check .
       - name: Type check
@@ -37,7 +47,7 @@ jobs:
       packages: write # push to GHCR, main only
     strategy:
       matrix:
-        service: [generator, ingest, gateway]
+        service: [generator, ingest, risk, gateway]
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: docker/setup-buildx-action@v4.4.1

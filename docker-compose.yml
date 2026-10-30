@@ -108,5 +108,50 @@ services:
       timeout: 5s
       retries: 10
 
+  couchbase:
+    image: couchbase/server:community-8.0.0
+    profiles: [core]
+    ports: ["8091:8091"] # web console only; services talk to it over the compose network
+    volumes: [couchbase-data:/opt/couchbase/var]
+    healthcheck:
+      test: curl -sf http://localhost:8091/ui/index.html > /dev/null
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  couchbase-init:
+    image: couchbase/server:community-8.0.0
+    profiles: [core]
+    depends_on: { couchbase: { condition: service_healthy } }
+    volumes: [./services/risk/couchbase-init.sh:/init.sh:ro]
+    environment:
+      CB_HOST: couchbase
+      CB_USER: ${COUCHBASE_USER:?copy .env.example to .env}
+      CB_PASSWORD: ${COUCHBASE_PASSWORD:?copy .env.example to .env}
+    entrypoint: ["sh", "/init.sh"]
+
+  risk:
+    build: { context: ., args: { SERVICE: risk } }
+    image: ledgerlens/risk:dev
+    profiles: [core]
+    ports: ["8001:8001"]
+    environment:
+      KAFKA_BOOTSTRAP: kafka:29092
+      MONGO_URI: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/?authSource=admin
+      COUCHBASE_URL: couchbase://couchbase
+      COUCHBASE_USER: ${COUCHBASE_USER}
+      COUCHBASE_PASSWORD: ${COUCHBASE_PASSWORD}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      mongo: { condition: service_healthy }
+      kafka-init: { condition: service_completed_successfully }
+      couchbase-init: { condition: service_completed_successfully }
+    healthcheck:
+      test: python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/health/ready')"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
 volumes:
   mongo-data:
+  couchbase-data:
