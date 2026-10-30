@@ -18,7 +18,7 @@ jobs:
           version: "0.12.2"
           python-version: "3.12"
           enable-cache: true
-      - run: uv sync --frozen
+      - run: uv sync --frozen --all-packages # install every workspace member, not just the root
       - name: Lint
         run: uv run ruff check . && uv run ruff format --check .
       - name: Type check
@@ -37,7 +37,7 @@ jobs:
       packages: write # push to GHCR, main only
     strategy:
       matrix:
-        service: [generator, ingest]
+        service: [generator, ingest, gateway]
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: docker/setup-buildx-action@v4.4.1

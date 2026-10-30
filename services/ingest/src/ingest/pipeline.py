@@ -17,13 +17,14 @@ from typing import Any
 
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer, ConsumerRecord
 from bson import Decimal128
-from ledgerlens_common import TOPIC_DLQ, TOPIC_VALIDATED
-from ledgerlens_common.logging import REQUEST_ID_HEADER, request_id_var
-from ledgerlens_common.models import Transaction
 from motor.motor_asyncio import AsyncIOMotorCollection
 from pydantic import ValidationError
 from pymongo import ASCENDING, DESCENDING, IndexModel
 from pymongo.errors import BulkWriteError
+
+from ledgerlens_common import TOPIC_DLQ, TOPIC_VALIDATED
+from ledgerlens_common.logging import REQUEST_ID_HEADER, request_id_var
+from ledgerlens_common.models import Transaction
 
 log = logging.getLogger("ingest.pipeline")
 

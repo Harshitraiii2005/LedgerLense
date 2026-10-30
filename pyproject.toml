@@ -9,7 +9,7 @@ dependencies = []
 dev = ["pytest==9.2.0", "pytest-asyncio==1.4.1", "pytest-cov==7.1.0", "ruff==0.17.3", "mypy==2.4.1", "testcontainers[mongodb,kafka]==4.15.0"]
 
 [tool.uv.workspace]
-members = ["libs/common", "services/generator", "services/ingest"]
+members = ["libs/common", "services/generator", "services/ingest", "services/gateway"]
 
 [tool.uv.sources]
 ledgerlens-common = { workspace = true }
@@ -17,6 +17,8 @@ ledgerlens-common = { workspace = true }
 [tool.ruff]
 line-length = 110
 target-version = "py312"
+# Explicit, so first-party import detection (isort) doesn't depend on which checkout ruff runs in.
+src = ["libs/common/src", "services/*/src"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "SIM", "RUF"]
@@ -31,7 +33,7 @@ ignore = ["S101"]  # assert is fine in tests and self-checks
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-mypy_path = "libs/common/src:services/generator/src:services/ingest/src"
+mypy_path = "libs/common/src:services/generator/src:services/ingest/src:services/gateway/src"
 explicit_package_bases = true
 
 [tool.pytest.ini_options]

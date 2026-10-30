@@ -15,9 +15,10 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from pymongo import MongoClient
+
 from generator.patterns import TransactionFactory
 from ingest.pipeline import INDEXES, to_document
-from pymongo import MongoClient
 
 RESULTS = Path(__file__).parent / "results"
 

@@ -15,6 +15,7 @@ from decimal import Decimal
 from typing import get_args
 
 from faker import Faker
+
 from ledgerlens_common.models import Category, Channel, Transaction
 
 CATEGORIES: tuple[Category, ...] = get_args(Category)
