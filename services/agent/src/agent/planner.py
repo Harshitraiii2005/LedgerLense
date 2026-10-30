@@ -125,6 +125,10 @@ class LlmPlan(BaseModel):
 
 def build_model(model: str) -> Any:
     """Gemini by model string (GOOGLE_API_KEY); Claude via ADK's Anthropic class (ANTHROPIC_API_KEY)."""
+    if model.startswith("openai/"):  # e.g. openai/gpt-4o-mini, via ADK's LiteLLM wrapper (OPENAI_API_KEY)
+        from google.adk.models.lite_llm import LiteLlm
+
+        return LiteLlm(model=model)
     if model.startswith("claude"):
         from google.adk.models.anthropic_llm import AnthropicLlm
 

@@ -12,6 +12,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 COPY libs libs
 COPY services services
+COPY semantic semantic
 # --no-editable installs our own packages as regular wheels, so the runtime stage needs no source tree.
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-editable --package "${SERVICE}"

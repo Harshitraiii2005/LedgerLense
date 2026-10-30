@@ -41,7 +41,13 @@ class QueryIn(BaseModel):
 
 
 def make_planner(s: Settings) -> Planner:
-    key = "ANTHROPIC_API_KEY" if s.agent_model.startswith("claude") else "GOOGLE_API_KEY"
+    key = (
+        "OPENAI_API_KEY"
+        if s.agent_model.startswith("openai/")
+        else "ANTHROPIC_API_KEY"
+        if s.agent_model.startswith("claude")
+        else "GOOGLE_API_KEY"
+    )
     if s.agent_planner == "adk" or (s.agent_planner == "auto" and os.environ.get(key)):
         return AdkPlanner(s.agent_model)
     return CatalogPlanner()
