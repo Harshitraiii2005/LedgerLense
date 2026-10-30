@@ -1,0 +1,45 @@
+# Harness Service for the Native Helm deploy stage.
+# Create via Services > New Service > YAML (identifier must match serviceRef in pipeline.yaml).
+#
+# Why OCI and not "chart from Git": Harness fetches only the chart's folder, but the umbrella
+# chart's subcharts are file://../<svc> siblings. So the CI stage vendors them (scripts/helm_deps.sh),
+# packages the umbrella and pushes it to an OCI registry; this Service deploys that package.
+service:
+  name: ledgerlens
+  identifier: ledgerlens
+  orgIdentifier: default
+  projectIdentifier: ledgerlens
+  serviceDefinition:
+    type: NativeHelm
+    spec:
+      manifests:
+        - manifest:
+            identifier: ledgerlens_chart
+            type: HelmChart
+            spec:
+              store:
+                type: OciHelmChart
+                spec:
+                  config:
+                    type: Generic
+                    spec:
+                      connectorRef: <+input> # OCI Helm repository connector (e.g. oci://ghcr.io/<owner>)
+                  basePath: charts
+              chartName: ledgerlens
+              chartVersion: <+input> # 0.1.0-<short sha>, as pushed by the CI stage
+              helmVersion: V3
+              skipResourceVersioning: false
+        # Environment-independent overrides from Git: image repos/tags via Harness expressions.
+        - manifest:
+            identifier: harness_values
+            type: Values
+            spec:
+              store:
+                type: Github
+                spec:
+                  connectorRef: <+input>
+                  gitFetchType: Branch
+                  branch: main
+                  repoName: ledgerlens
+                  paths:
+                    - deploy/harness/values-harness.yaml

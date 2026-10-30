@@ -29,6 +29,19 @@ jobs:
       - uses: actions/upload-artifact@v7.0.2
         with: { name: coverage, path: coverage.xml }
 
+  helm:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: azure/setup-helm@v5.0.1
+        with: { version: v4.3.1 }
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin kubeconform
+      - name: helm lint + kubeconform (kind and OpenShift overlays)
+        run: scripts/helm_check.sh
+
   images:
     needs: python
     runs-on: ubuntu-24.04

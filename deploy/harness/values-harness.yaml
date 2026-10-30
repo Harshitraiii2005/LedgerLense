@@ -1,0 +1,19 @@
+# Values overlay rendered by Harness at deploy time: points every image at the tag the CI stage pushed.
+global:
+  kafkaBootstrap: <+env.variables.kafka_bootstrap> # define on the Harness Environment
+
+ingest:
+  image: { repository: <+pipeline.variables.registry>/ledgerlens-ingest, tag: <+codebase.shortCommitSha>, pullPolicy: IfNotPresent }
+generator:
+  image: { repository: <+pipeline.variables.registry>/ledgerlens-generator, tag: <+codebase.shortCommitSha>, pullPolicy: IfNotPresent }
+risk:
+  image: { repository: <+pipeline.variables.registry>/ledgerlens-risk, tag: <+codebase.shortCommitSha>, pullPolicy: IfNotPresent }
+gateway:
+  image: { repository: <+pipeline.variables.registry>/ledgerlens-gateway, tag: <+codebase.shortCommitSha>, pullPolicy: IfNotPresent }
+agent:
+  image: { repository: <+pipeline.variables.registry>/ledgerlens-agent, tag: <+codebase.shortCommitSha>, pullPolicy: IfNotPresent }
+
+# Built outside this pipeline's matrix (different Dockerfiles); enable once their images are pushed.
+frontend: { enabled: false }
+spark-aggregates: { enabled: false }
+infra: { enabled: false } # use managed Kafka / Mongo / Couchbase in shared clusters

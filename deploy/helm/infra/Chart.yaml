@@ -1,0 +1,8 @@
+apiVersion: v2
+name: infra
+description: >-
+  Single-node Kafka (KRaft), MongoDB and Couchbase CE for local/kind clusters, using the same
+  pinned official images as docker-compose. Not for production: no replication, no backups.
+  See deploy/README.md for why this isn't a community chart / operator.
+type: application
+version: 0.1.0

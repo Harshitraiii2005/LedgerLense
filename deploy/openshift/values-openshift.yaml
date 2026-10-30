@@ -1,0 +1,43 @@
+# OpenShift overlay:  helm upgrade --install ledgerlens deploy/helm/ledgerlens \
+#   -f deploy/openshift/values-openshift.yaml --set global.imageRegistry=...  (see README.md)
+#
+# What changes vs. vanilla Kubernetes:
+# - No fixed UIDs anywhere. The restricted-v2 SCC assigns each pod a random UID from the
+#   namespace range (always in group 0); our images own their files as gid 0 and write only to /tmp.
+# - Routes (TLS edge) instead of NodePorts.
+# - In-cluster infra is off: the Kafka/Couchbase images used by the kind StatefulSets need
+#   fixed UIDs / root. Use Strimzi (OperatorHub) or a managed Kafka, MongoDB Atlas or the
+#   MongoDB operator, and Couchbase Capella, then point the ConfigMaps/Secret at them.
+global:
+  kafkaToolsRunAsUser: null # let the SCC pick the UID for the wait-for-topics initContainer
+  kafkaBootstrap: my-cluster-kafka-bootstrap:9092 # Strimzi's default bootstrap Service name
+
+infra:
+  enabled: false
+
+openshift:
+  routes:
+    enabled: true
+
+# Replace with your registry, e.g. quay.io/<user>/ledgerlens-ingest or the internal registry
+# image-registry.openshift-image-registry.svc:5000/<project>/ledgerlens-ingest.
+ingest:
+  image: { repository: ghcr.io/CHANGE_ME/ledgerlens-ingest, tag: latest, pullPolicy: Always }
+  config: { KAFKA_BOOTSTRAP: my-cluster-kafka-bootstrap:9092 }
+generator:
+  image: { repository: ghcr.io/CHANGE_ME/ledgerlens-generator, tag: latest, pullPolicy: Always }
+  config: { KAFKA_BOOTSTRAP: my-cluster-kafka-bootstrap:9092 }
+risk:
+  image: { repository: ghcr.io/CHANGE_ME/ledgerlens-risk, tag: latest, pullPolicy: Always }
+  config:
+    KAFKA_BOOTSTRAP: my-cluster-kafka-bootstrap:9092
+    COUCHBASE_URL: couchbases://CHANGE_ME.cloud.couchbase.com # Capella uses TLS (couchbases://)
+gateway:
+  image: { repository: ghcr.io/CHANGE_ME/ledgerlens-gateway, tag: latest, pullPolicy: Always }
+  config: { KAFKA_BOOTSTRAP: my-cluster-kafka-bootstrap:9092, DEV_MODE: "false" }
+agent:
+  image: { repository: ghcr.io/CHANGE_ME/ledgerlens-agent, tag: latest, pullPolicy: Always }
+frontend:
+  image: { repository: ghcr.io/CHANGE_ME/ledgerlens-frontend, tag: latest, pullPolicy: Always }
+spark-aggregates:
+  image: { repository: ghcr.io/CHANGE_ME/ledgerlens-spark-aggregates, tag: latest, pullPolicy: Always }

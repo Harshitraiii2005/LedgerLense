@@ -10,3 +10,5 @@ htmlcov/
 .pytest_cache/
 node_modules/
 dist/
+# vendored Helm dependencies (rebuilt by scripts/helm_deps.sh; Chart.lock is committed)
+deploy/helm/*/charts/

@@ -1,0 +1,137 @@
+# Harness pipeline (YAML v0 schema): build -> test -> push images -> approve -> Helm deploy to K8s.
+# Import: Harness > Pipelines > Create > "Import From Git" (or paste into the YAML editor).
+# Everything account-specific is a runtime input (<+input>) or a connector ref you create first;
+# see deploy/harness/README.md for the HUMAN ACTION steps.
+pipeline:
+  name: ledgerlens
+  identifier: ledgerlens
+  orgIdentifier: default
+  projectIdentifier: ledgerlens
+  tags: {}
+  properties:
+    ci:
+      codebase:
+        connectorRef: <+input> # GitHub connector
+        repoName: ledgerlens
+        build: <+input> # branch / PR / tag chosen at run time
+  variables:
+    - name: registry
+      type: String
+      description: Image registry prefix, e.g. ghcr.io/<owner>
+      value: <+input>
+  stages:
+    - stage:
+        name: Build and Test
+        identifier: build_and_test
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform: { os: Linux, arch: Amd64 }
+          runtime: { type: Cloud, spec: {} } # Harness Cloud build infra; swap for a K8s build farm if preferred
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Lint, type check, test
+                  identifier: lint_test
+                  spec:
+                    shell: Bash
+                    command: |
+                      curl -LsSf https://astral.sh/uv/0.12.2/install.sh | sh
+                      export PATH="$HOME/.local/bin:$PATH"
+                      uv sync --frozen --all-packages
+                      uv run ruff check . && uv run ruff format --check .
+                      uv run mypy libs/common/src services/*/src
+                      uv run pytest --cov --cov-report=xml
+                  timeout: 20m
+              - step:
+                  type: BuildAndPushDockerRegistry
+                  name: Build and push <+matrix.service>
+                  identifier: push_image
+                  strategy:
+                    matrix:
+                      service: [generator, ingest, risk, gateway, agent]
+                      maxConcurrency: 3
+                  spec:
+                    connectorRef: <+input> # Docker registry connector (GHCR / Docker Hub / Quay)
+                    repo: <+pipeline.variables.registry>/ledgerlens-<+matrix.service>
+                    tags:
+                      - <+codebase.shortCommitSha>
+                    dockerfile: Dockerfile
+                    context: .
+                    buildArgs:
+                      SERVICE: <+matrix.service>
+              - step:
+                  type: Run
+                  name: Package and push umbrella chart
+                  identifier: push_chart
+                  spec:
+                    shell: Bash
+                    envVariables:
+                      REGISTRY_USER: <+secrets.getValue("registry_user")>
+                      REGISTRY_TOKEN: <+secrets.getValue("registry_token")>
+                    command: |
+                      curl -fsSL https://get.helm.sh/helm-v4.3.1-linux-amd64.tar.gz | tar -xz
+                      export PATH="$PWD/linux-amd64:$PATH"
+                      REG="<+pipeline.variables.registry>"
+                      echo "$REGISTRY_TOKEN" | helm registry login "${REG%%/*}" -u "$REGISTRY_USER" --password-stdin
+                      scripts/helm_deps.sh   # vendor file:// subcharts into the package
+                      helm package deploy/helm/ledgerlens --version "0.1.0-<+codebase.shortCommitSha>"
+                      helm push "ledgerlens-0.1.0-<+codebase.shortCommitSha>.tgz" "oci://$REG/charts"
+                  timeout: 10m
+    - stage:
+        name: Approve production deploy
+        identifier: approve
+        type: Approval
+        when:
+          pipelineStatus: Success
+          condition: <+codebase.branch> == "main"
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: HarnessApproval
+                  name: Approve
+                  identifier: approve
+                  timeout: 1d
+                  spec:
+                    approvalMessage: Deploy LedgerLens <+codebase.shortCommitSha>?
+                    includePipelineExecutionHistory: true
+                    approvers:
+                      userGroups: [_project_all_users]
+                      minimumCount: 1
+                      disallowPipelineExecutor: false
+    - stage:
+        name: Deploy
+        identifier: deploy
+        type: Deployment
+        spec:
+          deploymentType: NativeHelm
+          service:
+            serviceRef: ledgerlens # deploy/harness/service.yaml
+          environment:
+            environmentRef: <+input>
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: <+input> # K8s infra definition (connector + namespace)
+          execution:
+            steps:
+              - step:
+                  type: HelmDeploy
+                  name: Helm upgrade --install
+                  identifier: helm_deploy
+                  timeout: 15m
+                  spec:
+                    skipDryRun: false
+                    ignoreReleaseHistFailStatus: false
+            rollbackSteps:
+              - step:
+                  type: HelmRollback
+                  name: Helm rollback
+                  identifier: helm_rollback
+                  timeout: 10m
+                  spec: {}
+        failureStrategies:
+          - onFailure:
+              errors: [AllErrors]
+              action: { type: StageRollback }

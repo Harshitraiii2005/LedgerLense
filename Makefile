@@ -1,7 +1,7 @@
 PROFILES ?= core
 COMPOSE := docker compose $(foreach p,$(PROFILES),--profile $(p))
 
-.PHONY: up down logs ps test test-unit lint fmt bench
+.PHONY: up down logs ps test test-unit lint fmt bench deploy-local undeploy-local smoke helm-lint
 
 .env:
 	cp .env.example .env
@@ -37,3 +37,15 @@ bench: .env ## needs `make up` (uses the compose Mongo); raw output saved under 
 	set -a && . ./.env && set +a && \
 	MONGO_URI="mongodb://$$MONGO_ROOT_USER:$$MONGO_ROOT_PASSWORD@localhost:27017/?authSource=admin" \
 	uv run python -u benchmarks/mongo_explain.py --docs 200000 | tee benchmarks/results/mongo_explain.stdout.txt
+
+deploy-local: .env ## kind cluster + images + Secret from .env + umbrella chart + smoke test
+	scripts/deploy_local.sh
+
+undeploy-local:
+	kind delete cluster --name ledgerlens
+
+smoke: .env ## re-run the post-deploy smoke test against the current kube context
+	set -a && . ./.env && set +a && scripts/smoke_test.sh
+
+helm-lint: ## helm lint + kubeconform for every chart and overlay (no cluster needed)
+	scripts/helm_check.sh

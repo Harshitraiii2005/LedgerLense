@@ -1,0 +1,23 @@
+# Local kind cluster (`make deploy-local`). Images are built locally as ledgerlens/<svc>:dev and
+# loaded with `kind load docker-image`, so they must never be pulled from a registry.
+# Each subchart's own values.yaml already uses ledgerlens/<svc>:dev.
+
+ingest:
+  image: { pullPolicy: Never }
+generator:
+  image: { pullPolicy: Never }
+  config: { GEN_RATE_PER_SEC: "10" } # gentler on a laptop
+risk:
+  image: { pullPolicy: Never }
+gateway:
+  image: { pullPolicy: Never }
+  config: { DEV_MODE: "true" } # dashboard dev login (POST /dev/token); never in a shared cluster
+  service: { type: NodePort, nodePort: 30802 } # mapped to localhost:8002 by deploy/kind/cluster.yaml
+  hpa: { maxReplicas: 2 }
+frontend:
+  image: { pullPolicy: Never }
+  service: { type: NodePort, nodePort: 30880 } # mapped to localhost:8080
+agent:
+  image: { pullPolicy: Never }
+spark-aggregates:
+  image: { pullPolicy: Never }

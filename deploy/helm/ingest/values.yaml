@@ -1,0 +1,33 @@
+global:
+  secretName: ledgerlens-secrets # created by `make deploy-local` from .env; never committed
+  kafkaBootstrap: kafka:9092
+  kafkaToolsImage: apache/kafka:3.9.1
+  kafkaToolsRunAsUser: 1000 # appuser in apache/kafka; set to null on OpenShift
+
+image:
+  repository: ledgerlens/ingest
+  tag: dev
+  pullPolicy: IfNotPresent
+
+replicas: 1
+port: 8000
+probes: { liveness: /health/live, readiness: /health/ready }
+service: { type: ClusterIP, nodePort: null }
+writablePaths: [/tmp]
+waitForTopics: [transactions.raw, transactions.validated, transactions.dlq]
+
+config:
+  KAFKA_BOOTSTRAP: kafka:9092
+  MONGO_DB: ledgerlens
+  CONSUMER_GROUP: ingest
+  LOG_LEVEL: INFO
+
+secretEnv:
+  MONGO_URI: MONGO_URI
+
+resources:
+  requests: { cpu: 100m, memory: 128Mi }
+  limits: { cpu: 500m, memory: 256Mi }
+
+# Scaling past the topic's partition count (6) adds idle consumers, so maxReplicas stays below it.
+hpa: { enabled: true, minReplicas: 1, maxReplicas: 3, cpuUtilization: 70 }

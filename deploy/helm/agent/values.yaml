@@ -1,0 +1,34 @@
+global:
+  secretName: ledgerlens-secrets # created by `make deploy-local` from .env; never committed
+  kafkaBootstrap: kafka:9092
+  kafkaToolsImage: apache/kafka:3.9.1
+  kafkaToolsRunAsUser: 1000 # appuser in apache/kafka; set to null on OpenShift
+
+image:
+  repository: ledgerlens/agent
+  tag: dev
+  pullPolicy: IfNotPresent
+
+replicas: 1
+port: 8003
+probes: { liveness: /health/live, readiness: /health/ready }
+service: { type: ClusterIP, nodePort: null }
+writablePaths: [/tmp]
+waitForTopics: []
+
+config:
+  MONGO_DB: ledgerlens
+  LLM_PROVIDER: gemini # or "claude"
+  LOG_LEVEL: INFO
+
+secretEnv:
+  MONGO_URI: MONGO_URI
+  GOOGLE_API_KEY: GOOGLE_API_KEY
+  ANTHROPIC_API_KEY: ANTHROPIC_API_KEY
+optionalSecretEnv: [GOOGLE_API_KEY, ANTHROPIC_API_KEY] # only the chosen provider's key is needed
+
+resources:
+  requests: { cpu: 100m, memory: 512Mi } # sentence-transformers model + FAISS index in memory
+  limits: { cpu: 1000m, memory: 1Gi }
+
+hpa: { enabled: false }

@@ -1,0 +1,28 @@
+# Defaults for any cluster. Environment overlays:
+#   deploy/helm/ledgerlens/values-kind.yaml         local kind cluster (`make deploy-local`)
+#   deploy/openshift/values-openshift.yaml          OpenShift (Routes, no fixed UIDs)
+global:
+  # One Secret holds every credential; created out-of-band (kubectl / sealed-secrets / vault), never in git.
+  # Keys: MONGO_URI, JWT_SECRET, COUCHBASE_USER, COUCHBASE_PASSWORD, MONGO_ROOT_USER, MONGO_ROOT_PASSWORD,
+  #       optional GOOGLE_API_KEY, ANTHROPIC_API_KEY.
+  secretName: ledgerlens-secrets
+  kafkaBootstrap: kafka:9092
+  kafkaToolsImage: apache/kafka:3.9.1
+  kafkaToolsRunAsUser: 1000
+
+infra:
+  enabled: true # set false to point services at external/managed Kafka, Mongo and Couchbase
+
+ingest: { enabled: true }
+generator: { enabled: true }
+risk: { enabled: true }
+gateway: { enabled: true }
+agent: { enabled: true }
+frontend: { enabled: true }
+spark-aggregates: { enabled: true }
+
+# OpenShift Routes (route.openshift.io/v1) for the externally reachable services.
+openshift:
+  routes:
+    enabled: false
+    host: "" # "" = let the router generate <name>-<namespace>.<apps domain>

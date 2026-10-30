@@ -1,0 +1,10 @@
+apiVersion: v2
+name: risk
+description: "Rule-based risk scoring (Flask + gunicorn) with Couchbase profiles."
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: ledgerlens-lib
+    version: 0.1.0
+    repository: file://../ledgerlens-lib

@@ -1,0 +1,10 @@
+apiVersion: v2
+name: gateway
+description: "Public API: /v1 + /v2 transactions, RBAC (JWT), WebSocket stream of flagged txns."
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  - name: ledgerlens-lib
+    version: 0.1.0
+    repository: file://../ledgerlens-lib

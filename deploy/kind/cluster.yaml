@@ -1,0 +1,10 @@
+# kind create cluster --config deploy/kind/cluster.yaml   (done by `make deploy-local`)
+# One node is enough for a laptop; NodePorts are mapped to localhost.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: ledgerlens
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - { containerPort: 30802, hostPort: 8002, protocol: TCP } # gateway
+      - { containerPort: 30880, hostPort: 8080, protocol: TCP } # frontend

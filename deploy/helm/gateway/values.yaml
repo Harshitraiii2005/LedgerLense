@@ -1,0 +1,35 @@
+global:
+  secretName: ledgerlens-secrets # created by `make deploy-local` from .env; never committed
+  kafkaBootstrap: kafka:9092
+  kafkaToolsImage: apache/kafka:3.9.1
+  kafkaToolsRunAsUser: 1000 # appuser in apache/kafka; set to null on OpenShift
+
+image:
+  repository: ledgerlens/gateway
+  tag: dev
+  pullPolicy: IfNotPresent
+
+replicas: 1
+port: 8002
+probes: { liveness: /health/live, readiness: /health/ready }
+service: { type: ClusterIP, nodePort: null }
+writablePaths: [/tmp]
+waitForTopics: [transactions.flagged]
+
+config:
+  KAFKA_BOOTSTRAP: kafka:9092
+  MONGO_DB: ledgerlens
+  RISK_URL: http://risk:8001
+  AGENT_URL: http://agent:8003
+  DEV_MODE: "false" # true exposes POST /dev/token; only values-kind.yaml turns it on
+  LOG_LEVEL: INFO
+
+secretEnv:
+  MONGO_URI: MONGO_URI
+  JWT_SECRET: JWT_SECRET
+
+resources:
+  requests: { cpu: 100m, memory: 128Mi }
+  limits: { cpu: 500m, memory: 256Mi }
+
+hpa: { enabled: true, minReplicas: 1, maxReplicas: 4, cpuUtilization: 70 }
