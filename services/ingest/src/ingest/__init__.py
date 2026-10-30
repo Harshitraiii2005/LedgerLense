@@ -1,0 +1,1 @@
+"""Kafka -> MongoDB ingest service."""

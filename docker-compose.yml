@@ -1,0 +1,91 @@
+# Local stack. Profiles keep RAM use down: `core` = Kafka + Mongo + generator + ingest.
+# More profiles (ai, spark, ui) are added in later phases.
+name: ledgerlens
+
+x-kafka-image: &kafka-image apache/kafka:3.9.1
+
+services:
+  kafka:
+    image: *kafka-image
+    profiles: [core]
+    ports: ["9092:9092"]
+    environment:
+      # Single-node KRaft (no ZooKeeper). Two listeners: `kafka:29092` for containers,
+      # `localhost:9092` for tools running on the host.
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:29092,CONTROLLER://:9093,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false" # topics are created explicitly by kafka-init
+      KAFKA_HEAP_OPTS: -Xms512m -Xmx512m
+    healthcheck:
+      test: /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:29092 > /dev/null
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  kafka-init:
+    image: *kafka-image
+    profiles: [core]
+    depends_on: { kafka: { condition: service_healthy } }
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        for t in transactions.raw transactions.validated transactions.dlq transactions.flagged; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists \
+            --topic "$$t" --partitions 6 --replication-factor 1
+        done
+
+  mongo:
+    image: mongo:8.0.34
+    profiles: [core]
+    ports: ["27017:27017"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:?copy .env.example to .env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?copy .env.example to .env}
+    volumes: [mongo-data:/data/db]
+    healthcheck:
+      test: mongosh --quiet --eval "db.adminCommand('ping').ok" | grep -q 1
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  ingest:
+    build: { context: ., args: { SERVICE: ingest } }
+    image: ledgerlens/ingest:dev
+    profiles: [core]
+    ports: ["8000:8000"]
+    environment:
+      KAFKA_BOOTSTRAP: kafka:29092
+      MONGO_URI: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/?authSource=admin
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      mongo: { condition: service_healthy }
+      kafka-init: { condition: service_completed_successfully }
+    healthcheck:
+      test: python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready')"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  generator:
+    build: { context: ., args: { SERVICE: generator } }
+    image: ledgerlens/generator:dev
+    profiles: [core]
+    environment:
+      KAFKA_BOOTSTRAP: kafka:29092
+      GEN_RATE_PER_SEC: ${GEN_RATE_PER_SEC:-20}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      kafka-init: { condition: service_completed_successfully }
+
+volumes:
+  mongo-data:

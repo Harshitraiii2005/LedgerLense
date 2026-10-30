@@ -1,0 +1,15 @@
+[project]
+name = "generator"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = ["ledgerlens-common", "aiokafka==0.15.0", "faker==40.44.0"]
+
+[project.scripts]
+generator = "generator.main:run"
+
+[tool.uv.sources]
+ledgerlens-common = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

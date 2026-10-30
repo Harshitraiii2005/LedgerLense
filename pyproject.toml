@@ -1,0 +1,46 @@
+[project]
+name = "ledgerlens"
+version = "0.1.0"
+description = "Real-time transaction intelligence platform (portfolio project)"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest==9.2.0", "pytest-asyncio==1.4.1", "pytest-cov==7.1.0", "ruff==0.17.3", "mypy==2.4.1", "testcontainers[mongodb,kafka]==4.15.0"]
+
+[tool.uv.workspace]
+members = ["libs/common", "services/generator", "services/ingest"]
+
+[tool.uv.sources]
+ledgerlens-common = { workspace = true }
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "SIM", "RUF"]
+ignore = ["S101"]  # assert is fine in tests and self-checks
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S", "B"]
+"benchmarks/**" = ["S"]
+"services/generator/**" = ["S311"]  # synthetic data, not crypto
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+mypy_path = "libs/common/src:services/generator/src:services/ingest/src"
+explicit_package_bases = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+addopts = "--import-mode=importlib"
+markers = ["integration: needs Docker (testcontainers)"]
+
+[[tool.mypy.overrides]]
+module = ["aiokafka.*"]  # aiokafka ships no type hints
+ignore_missing_imports = true
