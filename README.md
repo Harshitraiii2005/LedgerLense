@@ -92,7 +92,10 @@ computed independently in Python from deterministically seeded data.
 | Planner | Result |
 |---|---|
 | Deterministic catalog planner (no LLM) | **33/35 (0.943)**. Both failures are retrieval misses ([details](benchmarks/results/agent_eval_catalog.md)). |
-| LLM planner (ADK; Gemini, Claude or `openai/*` via LiteLLM) | not measured yet. Run `PLANNER=adk AGENT_MODEL=openai/gpt-4o-mini make eval` with a key in `.env`. |
+| ADK `LlmAgent` + `openai/gpt-4o-mini` (LiteLLM), before key canonicalization | 14/35 (0.400): the model emitted keys like `" $match"`, which the guard rejected (fail-closed) ([details](benchmarks/results/agent_eval_adk_before_key_fix.md)) |
+| same, after `canonical_keys()` strips whitespace from keys before the guard | **32/35 (0.914)**: one `count` missing its `$` (rejected), one rate computed over flagged rows only (wrong logic), one empty pipeline ([details](benchmarks/results/agent_eval_adk.md)) |
+
+The LLM numbers come from one run each at temperature 0, against MongoDB Atlas (`ledgerlens_eval` db), so variance between runs is not measured. Reproduce with `PLANNER=adk AGENT_MODEL=openai/gpt-4o-mini make eval`, with `OPENAI_API_KEY` set in `.env`.
 
 ## Docs
 

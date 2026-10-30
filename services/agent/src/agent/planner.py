@@ -117,6 +117,16 @@ $bucket $sortByCount $facet $replaceRoot. Never use $out, $merge, $function, $wh
 Return pipeline_json as a JSON array string. Dates must be ISO strings inside {"$date": "..."}."""
 
 
+def canonical_keys(node: Any) -> Any:
+    """Strip whitespace around every key: models sometimes emit " $match". Done BEFORE the guard,
+    so the guard validates exactly what will run; anything still unknown is rejected as before."""
+    if isinstance(node, dict):
+        return {k.strip() if isinstance(k, str) else k: canonical_keys(v) for k, v in node.items()}
+    if isinstance(node, list):
+        return [canonical_keys(v) for v in node]
+    return node
+
+
 class LlmPlan(BaseModel):
     collection: str = Field(description="collection to aggregate on")
     pipeline_json: str = Field(description="the aggregation pipeline as a JSON array string")
@@ -178,7 +188,7 @@ class AdkPlanner:
                 text = "".join(p.text or "" for p in event.content.parts)
         out = LlmPlan.model_validate_json(text)
         try:
-            pipeline = json_util.loads(out.pipeline_json)  # turns {"$date": ...} into real datetimes
+            pipeline = canonical_keys(json_util.loads(out.pipeline_json))  # {"$date": ...} -> datetime
         except (ValueError, TypeError):
             pipeline = out.pipeline_json  # guard rejects non-lists with a clear reason
         return Plan(

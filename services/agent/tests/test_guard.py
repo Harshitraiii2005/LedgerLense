@@ -72,3 +72,12 @@ def test_slot_filters_ignore_term_words():
     term = default_catalog().get("impossible_travel")
     assert slot_filters("How many impossible travel cases online?", term) == {"channel": "online"}
     assert slot_filters("cash withdrawals in India paid in INR") == {"country": "IN", "currency": "INR"}
+
+
+def test_canonical_keys_then_guard():
+    from agent.planner import canonical_keys
+
+    p = canonical_keys([{" $match ": {" risk.flagged": True}}, {"$count": "n"}])
+    assert ok(p)[0] == {"$match": {"risk.flagged": True}}
+    with pytest.raises(PipelineRejected):  # normalising never smuggles a write stage through
+        ok(canonical_keys([{" $out": "x"}]))
