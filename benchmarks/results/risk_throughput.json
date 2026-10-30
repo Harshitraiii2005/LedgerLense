@@ -1,0 +1,16 @@
+{
+  "run_at": "2026-10-30T14:54:14.615681+00:00",
+  "setup": "Apple Silicon 10 CPU / 16 GB laptop; Couchbase Server community-8.0.0 single node in Docker Desktop (8 GB), 512 MB data quota; one thread",
+  "rules_in_process": {
+    "txns": 100000,
+    "txns_per_s": 94164,
+    "flagged": 2986
+  },
+  "couchbase_score_and_update": {
+    "txns": 10000,
+    "txns_per_s": 2167,
+    "p50_ms": 0.407,
+    "p95_ms": 0.77,
+    "p99_ms": 1.116
+  }
+}
