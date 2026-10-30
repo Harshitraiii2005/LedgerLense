@@ -1,0 +1,25 @@
+couchbase-0                 1/1     Running     0          49s     10.244.0.22   ledgerlens-control-plane   <none>           <none>
+couchbase-init-brl44        0/1     Completed   0          19m     10.244.0.10   ledgerlens-control-plane   <none>           <none>
+frontend-649f8fd54f-hp5jg   1/1     Running     0          7m12s   10.244.0.20   ledgerlens-control-plane   <none>           <none>
+gateway-5d96d97674-bvs5b    1/1     Running     0          19m     10.244.0.8    ledgerlens-control-plane   <none>           <none>
+generator-79dff57c9-49hvw   1/1     Running     0          19m     10.244.0.7    ledgerlens-control-plane   <none>           <none>
+ingest-594746dccb-jgtpn     1/1     Running     0          19m     10.244.0.6    ledgerlens-control-plane   <none>           <none>
+kafka-0                     1/1     Running     0          19m     10.244.0.17   ledgerlens-control-plane   <none>           <none>
+kafka-topics-gwrhm          0/1     Completed   0          19m     10.244.0.9    ledgerlens-control-plane   <none>           <none>
+mongo-0                     1/1     Running     0          19m     10.244.0.18   ledgerlens-control-plane   <none>           <none>
+risk-757d464b9f-nf8k9       1/1     Running     0          21s     10.244.0.23   ledgerlens-control-plane   <none>           <none>
+
+==> readiness endpoints
+agent /health/ready -> 200
+frontend / -> 200
+gateway /health/ready -> 200
+ingest /health/ready -> 200
+risk /health/ready -> 200
+
+==> API calls through the gateway
+v1 total=11623
+v2 data=5 next_cursor=True
+
+==> data is flowing (generator -> kafka -> ingest -> mongo)
+total=11674
+SMOKE TEST PASSED

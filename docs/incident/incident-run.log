@@ -1,0 +1,38 @@
+== 19:28:23 baseline
+19:28:23 | risk pod: 1/1 Running restarts=0; | consumer lag(risk): 0 | flagged in mongo: 238
+== 19:28:24 INJECT: ConfigMap edit with a typo (RISK_FLAG_THRESHOLD 50 -> 5O)
+configmap/risk patched
+== 19:28:25 running pod keeps old env (ConfigMap env is read at start)
+19:28:25 | risk pod: 1/1 Running restarts=0; | consumer lag(risk): 0 | flagged in mongo: 238
+== 19:28:26 pod rescheduled (simulated node drain: delete pod)
+pod "risk-757d464b9f-nf8k9" deleted from ledgerlens namespace
+19:28:41 | risk pod: 0/1 CrashLoopBackOff restarts=1; | consumer lag(risk): 163 | flagged in mongo: 238
+19:28:58 | risk pod: 0/1 CrashLoopBackOff restarts=2; | consumer lag(risk): 333 | flagged in mongo: 238
+19:29:16 | risk pod: 0/1 Error restarts=3; | consumer lag(risk): 503 | flagged in mongo: 238
+19:29:32 | risk pod: 0/1 CrashLoopBackOff restarts=3; | consumer lag(risk): 675 | flagged in mongo: 238
+19:29:50 | risk pod: 0/1 CrashLoopBackOff restarts=3; | consumer lag(risk): 848 | flagged in mongo: 238
+19:30:07 | risk pod: 0/1 CrashLoopBackOff restarts=4; | consumer lag(risk): 1021 | flagged in mongo: 238
+19:30:25 | risk pod: 0/1 CrashLoopBackOff restarts=4; | consumer lag(risk): 1193 | flagged in mongo: 238
+19:30:42 | risk pod: 0/1 CrashLoopBackOff restarts=4; | consumer lag(risk): 1364 | flagged in mongo: 238
+== 19:30:44 DIAGNOSE
+NAME                    READY   STATUS             RESTARTS      AGE
+risk-757d464b9f-5kr66   0/1     CrashLoopBackOff   4 (39s ago)   2m18s
+last exit code: 78
+-- logs --previous:
+{"ts": "2026-10-30T19:30:05.402987+00:00", "level": "CRITICAL", "service": "risk", "logger": "risk", "msg": "invalid risk configuration, refusing to start", "request_id": null, "errors": [{"field": "risk_flag_threshold", "msg": "Input should be a valid integer, unable to parse string as an integer"}]}
+-- configmap:
+5O
+== 19:30:44 FIX: restore value, restart
+configmap/risk patched
+deployment.apps/risk restarted
+Waiting for deployment "risk" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "risk" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "risk" rollout to finish: 1 old replicas are pending termination...
+deployment "risk" successfully rolled out
+19:31:11 | risk pod: 1/1 Running restarts=0; | consumer lag(risk): 0 | flagged in mongo: 265
+19:31:28 | risk pod: 1/1 Running restarts=0; | consumer lag(risk): 0 | flagged in mongo: 268
+19:31:45 | risk pod: 1/1 Running restarts=0; | consumer lag(risk): 0 | flagged in mongo: 270
+19:32:02 | risk pod: 1/1 Running restarts=0; | consumer lag(risk): 0 | flagged in mongo: 271
+19:32:19 | risk pod: 1/1 Running restarts=0; | consumer lag(risk): 0 | flagged in mongo: 272
+19:32:36 | risk pod: 1/1 Running restarts=0; | consumer lag(risk): 0 | flagged in mongo: 277
+== 19:32:38 done

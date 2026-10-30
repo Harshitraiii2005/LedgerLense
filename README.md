@@ -97,15 +97,18 @@ computed independently in Python from deterministically seeded data.
 
 The LLM numbers come from one run each at temperature 0, against MongoDB Atlas (`ledgerlens_eval` db), so variance between runs is not measured. Reproduce with `PLANNER=adk AGENT_MODEL=openai/gpt-4o-mini make eval`, with `OPENAI_API_KEY` set in `.env`.
 
+## Incident exercise
+
+On kind, a typo in the risk ConfigMap (`50` → `5O`) took risk scoring down for 2 min 45 s once the pod was rescheduled. Consumer lag went from 0 to 1,364, and the backlog drained in under 30 s after the fix, with no data lost. The full timeline is in [docs/postmortem.md](docs/postmortem.md), and the raw log in [docs/incident/](docs/incident/). The prevention, a Helm values schema that rejects the typo, has shipped.
+
 ## Docs
 
-[Architecture](docs/architecture.md) · [Runbook](docs/runbook.md) · [API versioning](docs/api-versioning.md) ·
+[Architecture](docs/architecture.md) · [Runbook](docs/runbook.md) · [Postmortem](docs/postmortem.md) · [API versioning](docs/api-versioning.md) ·
 [Cloud demo (Render + Vercel)](docs/cloud-deploy.md) · [Deploy / Helm](deploy/README.md)
 
 ## Known limitations
 
-- **Unfinished deliverables:** the kind deploy hasn't been verified end to end with all pods Ready and the
-  smoke test passing. The incident exercise (`docs/postmortem.md`) hasn't been done yet.
+- **Single-node kind:** `make deploy-local` brings up 9 Running pods and 2 completed jobs, and the smoke test passes ([output](deploy/kind/smoke-output.txt)). HPAs need metrics-server, which kind doesn't install by default.
 - **Risk rules:** precision is 0.41 and recall 0.56 against synthetic labels ([risk_eval](benchmarks/results/risk_eval.md)).
   That was measured on data from mixed generator runs, before the stable-customer fix. The z-score also
   ignores currency conversion.

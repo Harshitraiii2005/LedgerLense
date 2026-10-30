@@ -36,6 +36,16 @@ jobs:
       # GitHub-hosted Ubuntu runners have Docker, so testcontainers integration tests run here too.
       - name: Test
         run: uv run pytest --cov --cov-report=term-missing --cov-report=xml
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "true" # keep crashed containers around for the step below
+      - name: Logs of exited test containers
+        if: failure()
+        run: |
+          for c in $(docker ps -aq --filter status=exited); do
+            echo "::group::$(docker inspect -f '{{.Config.Image}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}}' "$c")"
+            docker logs --tail 80 "$c" 2>&1
+            echo "::endgroup::"
+          done
       - uses: actions/upload-artifact@v7.0.2
         with: { name: coverage, path: coverage.xml }
 

@@ -35,6 +35,9 @@ spec:
       containers:
         - name: couchbase
           image: {{ .Values.couchbase.image }}
+          # Erlang (beam.smp) sizes its port table from the open-files limit. On containerd nodes
+          # (kind) that limit is ~1e9, which makes the VM allocate GBs and get OOMKilled at start.
+          command: ["sh", "-c", "ulimit -n 65536 && exec /entrypoint.sh couchbase-server"]
           imagePullPolicy: IfNotPresent
           ports:
             - { name: rest, containerPort: 8091 }

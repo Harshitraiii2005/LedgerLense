@@ -31,10 +31,16 @@ else
   SET+=(--set spark-aggregates.enabled=false)
 fi
 
-# Pre-load infra images so the kind node doesn't pull them itself.
+# Pre-load infra images so the kind node doesn't pull them itself. These are multi-arch
+# indexes; with Docker Desktop's containerd image store `kind load docker-image` fails on them
+# ("content digest ... not found"), so export only the node's platform and load the archive.
+PLATFORM="linux/$(docker version --format '{{.Server.Arch}}')"
+ARCHIVE="$(mktemp -t ledgerlens-img).tar"
+trap 'rm -f "$ARCHIVE"' EXIT
 for img in apache/kafka:3.9.1 mongo:8.0.34 couchbase/server:community-8.0.0; do
-  docker image inspect "$img" > /dev/null 2>&1 || docker pull -q "$img"
-  load "$img"
+  docker image inspect "$img" > /dev/null 2>&1 || docker pull -q --platform "$PLATFORM" "$img"
+  docker save --platform "$PLATFORM" -o "$ARCHIVE" "$img"
+  kind load image-archive "$ARCHIVE" --name "$CLUSTER"
 done
 
 # One Secret with every credential, built from .env (gitignored). Values never touch the repo.
@@ -43,6 +49,7 @@ kubectl create namespace "$NS" --dry-run=client -o yaml | kubectl apply -f -
 OPTIONAL=()
 [ -n "${GOOGLE_API_KEY:-}" ] && OPTIONAL+=(--from-literal=GOOGLE_API_KEY="$GOOGLE_API_KEY")
 [ -n "${ANTHROPIC_API_KEY:-}" ] && OPTIONAL+=(--from-literal=ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY")
+[ -n "${OPENAI_API_KEY:-}" ] && OPTIONAL+=(--from-literal=OPENAI_API_KEY="$OPENAI_API_KEY")
 kubectl -n "$NS" create secret generic ledgerlens-secrets \
   --from-literal=MONGO_ROOT_USER="$MONGO_ROOT_USER" \
   --from-literal=MONGO_ROOT_PASSWORD="$MONGO_ROOT_PASSWORD" \

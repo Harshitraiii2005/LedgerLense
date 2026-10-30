@@ -19,14 +19,15 @@ waitForTopics: []
 config:
   MONGO_DB: ledgerlens
   AGENT_PLANNER: auto # adk if an LLM key is in the Secret, else the deterministic catalog planner
-  AGENT_MODEL: gemini-flash-latest # or a claude-* model id (then ANTHROPIC_API_KEY is used)
+  AGENT_MODEL: gemini-flash-latest # or claude-* (ANTHROPIC_API_KEY) or openai/<model> (OPENAI_API_KEY)
   LOG_LEVEL: INFO
 
 secretEnv:
   MONGO_URI: MONGO_URI
   GOOGLE_API_KEY: GOOGLE_API_KEY
   ANTHROPIC_API_KEY: ANTHROPIC_API_KEY
-optionalSecretEnv: [GOOGLE_API_KEY, ANTHROPIC_API_KEY] # both optional: no key = catalog planner
+  OPENAI_API_KEY: OPENAI_API_KEY
+optionalSecretEnv: [GOOGLE_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY] # both optional: no key = catalog planner
 
 resources:
   requests: { cpu: 100m, memory: 768Mi } # torch + MiniLM + FAISS; the index is built into /tmp at first start

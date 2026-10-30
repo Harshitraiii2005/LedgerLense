@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$comment": "Added after the 2026-10-30 incident (docs/postmortem.md): reject malformed risk thresholds at `helm install/upgrade/lint` time, before a pod ever reads them. Ranges mirror services/risk/src/risk/config.py.",
+  "type": "object",
+  "properties": {
+    "config": {
+      "type": "object",
+      "properties": {
+        "RISK_FLAG_THRESHOLD": { "type": "string", "pattern": "^(100|[1-9][0-9]?)$" },
+        "RISK_VELOCITY_WINDOW_S": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+        "RISK_VELOCITY_MAX_TXNS": { "type": "string", "pattern": "^([2-9]|[1-9][0-9]+)$" },
+        "RISK_ZSCORE_THRESHOLD": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?$" },
+        "RISK_ZSCORE_MIN_HISTORY": { "type": "string", "pattern": "^([2-9]|[1-9][0-9]+)$" },
+        "RISK_COUNTRY_WINDOW_S": { "type": "string", "pattern": "^[1-9][0-9]*$" }
+      }
+    }
+  }
+}

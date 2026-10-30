@@ -13,7 +13,7 @@ replicas: 1
 port: 8080
 probes: { liveness: /, readiness: / }
 service: { type: ClusterIP, nodePort: null }
-writablePaths: [/tmp, /var/cache/nginx] # nginx-unprivileged keeps its pid + temp files here
+writablePaths: [/tmp, /var/cache/nginx, /etc/nginx/conf.d] # pid + temp files; conf.d gets the envsubst-rendered config
 waitForTopics: []
 
 config:
