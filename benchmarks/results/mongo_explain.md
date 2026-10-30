@@ -1,0 +1,9 @@
+# Mongo index explain() — 200000 docs, MongoDB 8.0.34
+Run at 2026-10-30T14:22:29.948554+00:00. Command: `make bench`. Raw output: mongo_explain.json
+
+| query | indexes | stage | docs examined | keys examined | returned | server ms | client p50 ms |
+|---|---|---|---|---|---|---|---|
+| customer_recent | without_indexes | COLLSCAN | 200000 | 0 | 50 | 47 | 40.99 |
+| customer_recent | with_indexes | IXSCAN | 50 | 50 | 50 | 1 | 0.49 |
+| merchant_last_7d | without_indexes | COLLSCAN | 200000 | 0 | 117 | 39 | 42.23 |
+| merchant_last_7d | with_indexes | IXSCAN | 117 | 117 | 117 | 1 | 0.95 |

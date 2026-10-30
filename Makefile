@@ -33,5 +33,7 @@ fmt:
 	uv run ruff check --fix .
 	uv run ruff format .
 
-bench: ## needs `make up` (uses the compose Mongo)
-	uv run python benchmarks/mongo_explain.py
+bench: .env ## needs `make up` (uses the compose Mongo); raw output saved under benchmarks/results/
+	set -a && . ./.env && set +a && \
+	MONGO_URI="mongodb://$$MONGO_ROOT_USER:$$MONGO_ROOT_PASSWORD@localhost:27017/?authSource=admin" \
+	uv run python -u benchmarks/mongo_explain.py --docs 200000 | tee benchmarks/results/mongo_explain.stdout.txt

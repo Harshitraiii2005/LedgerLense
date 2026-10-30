@@ -8,6 +8,7 @@ from decimal import Decimal
 
 import pytest
 from bson import Decimal128
+
 from ingest.pipeline import Ingestor, InvalidMessage, parse, to_document
 from ledgerlens_common import TOPIC_DLQ, TOPIC_VALIDATED
 

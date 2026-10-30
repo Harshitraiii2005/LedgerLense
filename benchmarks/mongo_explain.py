@@ -15,9 +15,10 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from pymongo import MongoClient
+
 from generator.patterns import TransactionFactory
 from ingest.pipeline import INDEXES, to_document
-from pymongo import MongoClient
 
 RESULTS = Path(__file__).parent / "results"
 
@@ -26,11 +27,13 @@ def seed(coll: Any, n: int) -> None:
     factory, rng = TransactionFactory(seed=42), random.Random(42)
     end = datetime(2026, 10, 1, tzinfo=UTC)
     docs: list[dict[str, Any]] = []
-    while len(docs) < n:
+    inserted = 0
+    while inserted + len(docs) < n:
         now = end - timedelta(seconds=rng.randrange(90 * 86400))  # spread over 90 days
         docs.extend(to_document(t, {}) for t, _ in factory.next_batch(now))
         if len(docs) >= 10_000:
             coll.insert_many(docs)
+            inserted += len(docs)
             docs.clear()
     if docs:
         coll.insert_many(docs)
@@ -63,7 +66,7 @@ def measure(coll: Any, flt: dict[str, Any], sort: list[tuple[str, int]], limit: 
     winning = plan["queryPlanner"]["winningPlan"]
     return {
         "summary": {
-            "winning_stage": "IXSCAN" if '"IXSCAN"' in json.dumps(winning) else "COLLSCAN",
+            "winning_stage": "IXSCAN" if '"IXSCAN"' in json.dumps(winning, default=str) else "COLLSCAN",
             "n_returned": stats["nReturned"],
             "total_docs_examined": stats["totalDocsExamined"],
             "total_keys_examined": stats["totalKeysExamined"],

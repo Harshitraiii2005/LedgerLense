@@ -1,0 +1,638 @@
+{
+  "docs": 200000,
+  "mongo_version": "8.0.34",
+  "run_at": "2026-10-30T14:22:29.948554+00:00",
+  "queries": {
+    "customer_recent": {
+      "without_indexes": {
+        "summary": {
+          "winning_stage": "COLLSCAN",
+          "n_returned": 50,
+          "total_docs_examined": 200000,
+          "total_keys_examined": 0,
+          "execution_time_ms": 47,
+          "client_median_ms_20_runs": 40.99
+        },
+        "explain": {
+          "explainVersion": "1",
+          "queryPlanner": {
+            "namespace": "ledgerlens_bench.transactions",
+            "parsedQuery": {
+              "customer_id": {
+                "$eq": "C000174"
+              }
+            },
+            "indexFilterSet": false,
+            "queryHash": "18BB692D",
+            "planCacheShapeHash": "18BB692D",
+            "planCacheKey": "34E7A999",
+            "optimizationTimeMillis": 2,
+            "maxIndexedOrSolutionsReached": false,
+            "maxIndexedAndSolutionsReached": false,
+            "maxScansToExplodeReached": false,
+            "prunedSimilarIndexes": false,
+            "winningPlan": {
+              "isCached": false,
+              "stage": "SORT",
+              "sortPattern": {
+                "timestamp": -1
+              },
+              "memLimit": 104857600,
+              "limitAmount": 50,
+              "type": "simple",
+              "inputStage": {
+                "stage": "COLLSCAN",
+                "filter": {
+                  "customer_id": {
+                    "$eq": "C000174"
+                  }
+                },
+                "direction": "forward"
+              }
+            },
+            "rejectedPlans": []
+          },
+          "executionStats": {
+            "executionSuccess": true,
+            "nReturned": 50,
+            "executionTimeMillis": 47,
+            "totalKeysExamined": 0,
+            "totalDocsExamined": 200000,
+            "executionStages": {
+              "isCached": false,
+              "stage": "SORT",
+              "nReturned": 50,
+              "executionTimeMillisEstimate": 42,
+              "works": 200052,
+              "advanced": 50,
+              "needTime": 200001,
+              "needYield": 0,
+              "saveState": 3,
+              "restoreState": 3,
+              "isEOF": 1,
+              "sortPattern": {
+                "timestamp": -1
+              },
+              "memLimit": 104857600,
+              "limitAmount": 50,
+              "type": "simple",
+              "totalDataSizeSorted": 14041,
+              "usedDisk": false,
+              "spills": 0,
+              "spilledDataStorageSize": 0,
+              "inputStage": {
+                "stage": "COLLSCAN",
+                "filter": {
+                  "customer_id": {
+                    "$eq": "C000174"
+                  }
+                },
+                "nReturned": 357,
+                "executionTimeMillisEstimate": 31,
+                "works": 200001,
+                "advanced": 357,
+                "needTime": 199643,
+                "needYield": 0,
+                "saveState": 3,
+                "restoreState": 3,
+                "isEOF": 1,
+                "direction": "forward",
+                "docsExamined": 200000
+              }
+            },
+            "allPlansExecution": []
+          },
+          "queryShapeHash": "C24B4363B547600E83C6A0B7F1A51C6EA7B6D5C01F6DF3B074E5C49662502C50",
+          "command": {
+            "find": "transactions",
+            "filter": {
+              "customer_id": "C000174"
+            },
+            "sort": {
+              "timestamp": -1
+            },
+            "limit": 50,
+            "singleBatch": true,
+            "$db": "ledgerlens_bench"
+          },
+          "serverInfo": {
+            "host": "7e070276652d",
+            "port": 27017,
+            "version": "8.0.34",
+            "gitVersion": "51db4515a6597aedcf6188ee4e48a27e65b065ae"
+          },
+          "serverParameters": {
+            "internalQueryFacetBufferSizeBytes": 104857600,
+            "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+            "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+            "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+            "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+            "internalQueryProhibitBlockingMergeOnMongoS": 0,
+            "internalQueryMaxAddToSetBytes": 104857600,
+            "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+            "internalQueryFrameworkControl": "trySbeRestricted",
+            "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+          },
+          "ok": 1.0
+        }
+      },
+      "with_indexes": {
+        "summary": {
+          "winning_stage": "IXSCAN",
+          "n_returned": 50,
+          "total_docs_examined": 50,
+          "total_keys_examined": 50,
+          "execution_time_ms": 1,
+          "client_median_ms_20_runs": 0.49
+        },
+        "explain": {
+          "explainVersion": "1",
+          "queryPlanner": {
+            "namespace": "ledgerlens_bench.transactions",
+            "parsedQuery": {
+              "customer_id": {
+                "$eq": "C000174"
+              }
+            },
+            "indexFilterSet": false,
+            "queryHash": "18BB692D",
+            "planCacheShapeHash": "18BB692D",
+            "planCacheKey": "648D188C",
+            "optimizationTimeMillis": 0,
+            "maxIndexedOrSolutionsReached": false,
+            "maxIndexedAndSolutionsReached": false,
+            "maxScansToExplodeReached": false,
+            "prunedSimilarIndexes": false,
+            "winningPlan": {
+              "isCached": false,
+              "stage": "LIMIT",
+              "limitAmount": 50,
+              "inputStage": {
+                "stage": "FETCH",
+                "inputStage": {
+                  "stage": "IXSCAN",
+                  "keyPattern": {
+                    "customer_id": 1,
+                    "timestamp": -1
+                  },
+                  "indexName": "customer_ts",
+                  "isMultiKey": false,
+                  "multiKeyPaths": {
+                    "customer_id": [],
+                    "timestamp": []
+                  },
+                  "isUnique": false,
+                  "isSparse": false,
+                  "isPartial": false,
+                  "indexVersion": 2,
+                  "direction": "forward",
+                  "indexBounds": {
+                    "customer_id": [
+                      "[\"C000174\", \"C000174\"]"
+                    ],
+                    "timestamp": [
+                      "[MaxKey, MinKey]"
+                    ]
+                  }
+                }
+              }
+            },
+            "rejectedPlans": []
+          },
+          "executionStats": {
+            "executionSuccess": true,
+            "nReturned": 50,
+            "executionTimeMillis": 1,
+            "totalKeysExamined": 50,
+            "totalDocsExamined": 50,
+            "executionStages": {
+              "isCached": false,
+              "stage": "LIMIT",
+              "nReturned": 50,
+              "executionTimeMillisEstimate": 0,
+              "works": 51,
+              "advanced": 50,
+              "needTime": 0,
+              "needYield": 0,
+              "saveState": 0,
+              "restoreState": 0,
+              "isEOF": 1,
+              "limitAmount": 50,
+              "inputStage": {
+                "stage": "FETCH",
+                "nReturned": 50,
+                "executionTimeMillisEstimate": 0,
+                "works": 50,
+                "advanced": 50,
+                "needTime": 0,
+                "needYield": 0,
+                "saveState": 0,
+                "restoreState": 0,
+                "isEOF": 0,
+                "docsExamined": 50,
+                "alreadyHasObj": 0,
+                "inputStage": {
+                  "stage": "IXSCAN",
+                  "nReturned": 50,
+                  "executionTimeMillisEstimate": 0,
+                  "works": 50,
+                  "advanced": 50,
+                  "needTime": 0,
+                  "needYield": 0,
+                  "saveState": 0,
+                  "restoreState": 0,
+                  "isEOF": 0,
+                  "keyPattern": {
+                    "customer_id": 1,
+                    "timestamp": -1
+                  },
+                  "indexName": "customer_ts",
+                  "isMultiKey": false,
+                  "multiKeyPaths": {
+                    "customer_id": [],
+                    "timestamp": []
+                  },
+                  "isUnique": false,
+                  "isSparse": false,
+                  "isPartial": false,
+                  "indexVersion": 2,
+                  "direction": "forward",
+                  "indexBounds": {
+                    "customer_id": [
+                      "[\"C000174\", \"C000174\"]"
+                    ],
+                    "timestamp": [
+                      "[MaxKey, MinKey]"
+                    ]
+                  },
+                  "keysExamined": 50,
+                  "seeks": 1,
+                  "dupsTested": 0,
+                  "dupsDropped": 0
+                }
+              }
+            },
+            "allPlansExecution": []
+          },
+          "queryShapeHash": "C24B4363B547600E83C6A0B7F1A51C6EA7B6D5C01F6DF3B074E5C49662502C50",
+          "command": {
+            "find": "transactions",
+            "filter": {
+              "customer_id": "C000174"
+            },
+            "sort": {
+              "timestamp": -1
+            },
+            "limit": 50,
+            "singleBatch": true,
+            "$db": "ledgerlens_bench"
+          },
+          "serverInfo": {
+            "host": "7e070276652d",
+            "port": 27017,
+            "version": "8.0.34",
+            "gitVersion": "51db4515a6597aedcf6188ee4e48a27e65b065ae"
+          },
+          "serverParameters": {
+            "internalQueryFacetBufferSizeBytes": 104857600,
+            "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+            "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+            "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+            "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+            "internalQueryProhibitBlockingMergeOnMongoS": 0,
+            "internalQueryMaxAddToSetBytes": 104857600,
+            "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+            "internalQueryFrameworkControl": "trySbeRestricted",
+            "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+          },
+          "ok": 1.0
+        }
+      }
+    },
+    "merchant_last_7d": {
+      "without_indexes": {
+        "summary": {
+          "winning_stage": "COLLSCAN",
+          "n_returned": 117,
+          "total_docs_examined": 200000,
+          "total_keys_examined": 0,
+          "execution_time_ms": 39,
+          "client_median_ms_20_runs": 42.23
+        },
+        "explain": {
+          "explainVersion": "1",
+          "queryPlanner": {
+            "namespace": "ledgerlens_bench.transactions",
+            "parsedQuery": {
+              "$and": [
+                {
+                  "merchant": {
+                    "$eq": "Walker LLC"
+                  }
+                },
+                {
+                  "timestamp": {
+                    "$gte": "2026-09-24 00:00:00"
+                  }
+                }
+              ]
+            },
+            "indexFilterSet": false,
+            "queryHash": "FA219E56",
+            "planCacheShapeHash": "FA219E56",
+            "planCacheKey": "9C887AC6",
+            "optimizationTimeMillis": 0,
+            "maxIndexedOrSolutionsReached": false,
+            "maxIndexedAndSolutionsReached": false,
+            "maxScansToExplodeReached": false,
+            "prunedSimilarIndexes": false,
+            "winningPlan": {
+              "isCached": false,
+              "stage": "SORT",
+              "sortPattern": {
+                "timestamp": -1
+              },
+              "memLimit": 104857600,
+              "type": "simple",
+              "inputStage": {
+                "stage": "COLLSCAN",
+                "filter": {
+                  "$and": [
+                    {
+                      "merchant": {
+                        "$eq": "Walker LLC"
+                      }
+                    },
+                    {
+                      "timestamp": {
+                        "$gte": "2026-09-24 00:00:00"
+                      }
+                    }
+                  ]
+                },
+                "direction": "forward"
+              }
+            },
+            "rejectedPlans": []
+          },
+          "executionStats": {
+            "executionSuccess": true,
+            "nReturned": 117,
+            "executionTimeMillis": 39,
+            "totalKeysExamined": 0,
+            "totalDocsExamined": 200000,
+            "executionStages": {
+              "isCached": false,
+              "stage": "SORT",
+              "nReturned": 117,
+              "executionTimeMillisEstimate": 34,
+              "works": 200119,
+              "advanced": 117,
+              "needTime": 200001,
+              "needYield": 0,
+              "saveState": 2,
+              "restoreState": 2,
+              "isEOF": 1,
+              "sortPattern": {
+                "timestamp": -1
+              },
+              "memLimit": 104857600,
+              "type": "simple",
+              "totalDataSizeSorted": 31416,
+              "usedDisk": false,
+              "spills": 0,
+              "spilledDataStorageSize": 0,
+              "inputStage": {
+                "stage": "COLLSCAN",
+                "filter": {
+                  "$and": [
+                    {
+                      "merchant": {
+                        "$eq": "Walker LLC"
+                      }
+                    },
+                    {
+                      "timestamp": {
+                        "$gte": "2026-09-24 00:00:00"
+                      }
+                    }
+                  ]
+                },
+                "nReturned": 117,
+                "executionTimeMillisEstimate": 34,
+                "works": 200001,
+                "advanced": 117,
+                "needTime": 199883,
+                "needYield": 0,
+                "saveState": 2,
+                "restoreState": 2,
+                "isEOF": 1,
+                "direction": "forward",
+                "docsExamined": 200000
+              }
+            },
+            "allPlansExecution": []
+          },
+          "queryShapeHash": "CFF66B467890075F0DCF4529E67C2728D86644B77052EF7878A9607A6890A5E8",
+          "command": {
+            "find": "transactions",
+            "filter": {
+              "merchant": "Walker LLC",
+              "timestamp": {
+                "$gte": "2026-09-24 00:00:00"
+              }
+            },
+            "sort": {
+              "timestamp": -1
+            },
+            "$db": "ledgerlens_bench"
+          },
+          "serverInfo": {
+            "host": "7e070276652d",
+            "port": 27017,
+            "version": "8.0.34",
+            "gitVersion": "51db4515a6597aedcf6188ee4e48a27e65b065ae"
+          },
+          "serverParameters": {
+            "internalQueryFacetBufferSizeBytes": 104857600,
+            "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+            "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+            "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+            "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+            "internalQueryProhibitBlockingMergeOnMongoS": 0,
+            "internalQueryMaxAddToSetBytes": 104857600,
+            "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+            "internalQueryFrameworkControl": "trySbeRestricted",
+            "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+          },
+          "ok": 1.0
+        }
+      },
+      "with_indexes": {
+        "summary": {
+          "winning_stage": "IXSCAN",
+          "n_returned": 117,
+          "total_docs_examined": 117,
+          "total_keys_examined": 117,
+          "execution_time_ms": 1,
+          "client_median_ms_20_runs": 0.95
+        },
+        "explain": {
+          "explainVersion": "1",
+          "queryPlanner": {
+            "namespace": "ledgerlens_bench.transactions",
+            "parsedQuery": {
+              "$and": [
+                {
+                  "merchant": {
+                    "$eq": "Walker LLC"
+                  }
+                },
+                {
+                  "timestamp": {
+                    "$gte": "2026-09-24 00:00:00"
+                  }
+                }
+              ]
+            },
+            "indexFilterSet": false,
+            "queryHash": "FA219E56",
+            "planCacheShapeHash": "FA219E56",
+            "planCacheKey": "C4DBFDBD",
+            "optimizationTimeMillis": 0,
+            "maxIndexedOrSolutionsReached": false,
+            "maxIndexedAndSolutionsReached": false,
+            "maxScansToExplodeReached": false,
+            "prunedSimilarIndexes": false,
+            "winningPlan": {
+              "isCached": false,
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "merchant": 1,
+                  "timestamp": -1
+                },
+                "indexName": "merchant_ts",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "merchant": [],
+                  "timestamp": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "merchant": [
+                    "[\"Walker LLC\", \"Walker LLC\"]"
+                  ],
+                  "timestamp": [
+                    "[new Date(9223372036854775807), new Date(1790208000000)]"
+                  ]
+                }
+              }
+            },
+            "rejectedPlans": []
+          },
+          "executionStats": {
+            "executionSuccess": true,
+            "nReturned": 117,
+            "executionTimeMillis": 1,
+            "totalKeysExamined": 117,
+            "totalDocsExamined": 117,
+            "executionStages": {
+              "isCached": false,
+              "stage": "FETCH",
+              "nReturned": 117,
+              "executionTimeMillisEstimate": 2,
+              "works": 118,
+              "advanced": 117,
+              "needTime": 0,
+              "needYield": 0,
+              "saveState": 0,
+              "restoreState": 0,
+              "isEOF": 1,
+              "docsExamined": 117,
+              "alreadyHasObj": 0,
+              "inputStage": {
+                "stage": "IXSCAN",
+                "nReturned": 117,
+                "executionTimeMillisEstimate": 2,
+                "works": 118,
+                "advanced": 117,
+                "needTime": 0,
+                "needYield": 0,
+                "saveState": 0,
+                "restoreState": 0,
+                "isEOF": 1,
+                "keyPattern": {
+                  "merchant": 1,
+                  "timestamp": -1
+                },
+                "indexName": "merchant_ts",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "merchant": [],
+                  "timestamp": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "merchant": [
+                    "[\"Walker LLC\", \"Walker LLC\"]"
+                  ],
+                  "timestamp": [
+                    "[new Date(9223372036854775807), new Date(1790208000000)]"
+                  ]
+                },
+                "keysExamined": 117,
+                "seeks": 1,
+                "dupsTested": 0,
+                "dupsDropped": 0
+              }
+            },
+            "allPlansExecution": []
+          },
+          "queryShapeHash": "CFF66B467890075F0DCF4529E67C2728D86644B77052EF7878A9607A6890A5E8",
+          "command": {
+            "find": "transactions",
+            "filter": {
+              "merchant": "Walker LLC",
+              "timestamp": {
+                "$gte": "2026-09-24 00:00:00"
+              }
+            },
+            "sort": {
+              "timestamp": -1
+            },
+            "$db": "ledgerlens_bench"
+          },
+          "serverInfo": {
+            "host": "7e070276652d",
+            "port": 27017,
+            "version": "8.0.34",
+            "gitVersion": "51db4515a6597aedcf6188ee4e48a27e65b065ae"
+          },
+          "serverParameters": {
+            "internalQueryFacetBufferSizeBytes": 104857600,
+            "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+            "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+            "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+            "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+            "internalQueryProhibitBlockingMergeOnMongoS": 0,
+            "internalQueryMaxAddToSetBytes": 104857600,
+            "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+            "internalQueryFrameworkControl": "trySbeRestricted",
+            "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+          },
+          "ok": 1.0
+        }
+      }
+    }
+  }
+}
