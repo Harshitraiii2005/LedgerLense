@@ -108,5 +108,17 @@ services:
       timeout: 5s
       retries: 10
 
+  # Angular dashboard behind nginx, which also proxies /api (incl. the WebSocket) to the gateway.
+  # Needs the gateway from `core`: PROFILES="core ui" make up
+  frontend:
+    build: { context: ./frontend }
+    image: ledgerlens/frontend:dev
+    profiles: [ui]
+    ports: ["4200:8080"]
+    environment:
+      GATEWAY_URL: http://gateway:8002
+    depends_on:
+      gateway: { condition: service_healthy }
+
 volumes:
   mongo-data:

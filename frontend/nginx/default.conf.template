@@ -1,0 +1,33 @@
+# Rendered at container start by the nginx image's envsubst step (GATEWAY_URL comes from env).
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+server {
+    listen 8080;  # unprivileged port: no root needed to bind
+    root /usr/share/nginx/html;
+
+    # /api/* -> gateway with the /api prefix stripped (same contract as the dev proxy).
+    location /api/ {
+        proxy_pass ${GATEWAY_URL}/;
+        proxy_http_version 1.1;
+        # WebSocket upgrade for /api/v2/ws/flagged
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_read_timeout 1h;  # keep idle WebSockets open
+    }
+
+    # Hashed bundles can be cached forever; index.html must not be.
+    location ~* \.(js|css|ico|woff2?)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # SPA: unknown paths fall back to index.html so deep links work.
+    location / {
+        add_header Cache-Control "no-cache";
+        try_files $uri $uri/ /index.html;
+    }
+}
