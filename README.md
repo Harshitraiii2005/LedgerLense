@@ -101,6 +101,30 @@ The LLM numbers come from one run each at temperature 0, against MongoDB Atlas (
 
 On kind, a typo in the risk ConfigMap (`50` → `5O`) took risk scoring down for 2 min 45 s once the pod was rescheduled. Consumer lag went from 0 to 1,364, and the backlog drained in under 30 s after the fix, with no data lost. The full timeline is in [docs/postmortem.md](docs/postmortem.md), and the raw log in [docs/incident/](docs/incident/). The prevention, a Helm values schema that rejects the typo, has shipped.
 
+## Cloud deployment (Render + Vercel)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Harshitraiii2005/LedgerLense)
+
+| Part | Platform | Config | Notes |
+|---|---|---|---|
+| Gateway (public API + WebSocket) | Render web service, **free** | [render.yaml](render.yaml) | Sleeps when idle; the first request after idle is slow |
+| Kafka, Couchbase, risk, agent | Render private services, **paid** | `render.yaml` | Kafka 1c-2g, Couchbase 2c-4g + 5 GB disk, agent 1c-2g |
+| Ingest, generator | Render background workers, **paid** | `render.yaml` | Generator runs at 2 txn/s to stay within Atlas M0 |
+| MongoDB | MongoDB Atlas M0, **free** | `MONGO_URI` (prompted) | Seed with `MONGO_URI=... uv run python scripts/seed_demo.py` |
+| Dashboard | Vercel Hobby, **free** | [frontend/vercel.json](frontend/vercel.json) | Rewrites `/api/*` to the gateway; the WebSocket connects directly (`LEDGERLENS_WS_BASE`) |
+
+**Steps**
+1. **Render:** click the button above, or go to Dashboard → New → Blueprint → this repo. When prompted, paste the Atlas
+   connection string into each `MONGO_URI`. Optionally add `GOOGLE_API_KEY` or `OPENAI_API_KEY` for the agent's LLM
+   planner; without one it uses the deterministic catalog planner.
+2. **Vercel:** create a project from this repo with Root Directory `frontend` and set
+   `LEDGERLENS_WS_BASE=wss://<gateway>.onrender.com`. If Render didn't name the gateway
+   `ledgerlens-gateway.onrender.com`, update the rewrite destination in `frontend/vercel.json`.
+3. **Log in:** visitors can self-issue **analyst** tokens (`DEV_TOKEN_ROLES=analyst`). Mint admin tokens locally with the
+   Render-generated `JWT_SECRET`: `JWT_SECRET=... uv run python services/gateway/scripts/mint_token.py --sub you --role admin`.
+
+Details, topology reasoning and caveats are in [docs/cloud-deploy.md](docs/cloud-deploy.md).
+
 ## Docs
 
 [Architecture](docs/architecture.md) · [Runbook](docs/runbook.md) · [Postmortem](docs/postmortem.md) · [API versioning](docs/api-versioning.md) ·
