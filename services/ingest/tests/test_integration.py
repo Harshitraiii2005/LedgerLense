@@ -1,6 +1,7 @@
 """End-to-end: generator -> real Kafka -> ingest app -> real MongoDB (testcontainers, needs Docker)."""
 
 import asyncio
+import os
 import socket
 from collections.abc import Iterator
 
@@ -20,6 +21,10 @@ from ingest.app import create_app
 from ingest.pipeline import insert_idempotent
 from ledgerlens_common import TOPIC_DLQ, TOPIC_RAW, TOPIC_VALIDATED
 
+# Same version as compose/Helm by default. CI overrides it: MongoDB 8.x cannot start on
+# Linux kernel 6.19+ (SERVER-121912, tcmalloc rseq), which GitHub runners now use.
+MONGO_TEST_IMAGE = os.environ.get("MONGO_TEST_IMAGE", "mongo:8.0.34")
+
 pytestmark = pytest.mark.integration
 
 
@@ -31,7 +36,7 @@ def free_port() -> int:
 
 @pytest.fixture(scope="session")
 def mongo_url() -> Iterator[str]:
-    with MongoDbContainer("mongo:8.0.34") as mongo:
+    with MongoDbContainer(MONGO_TEST_IMAGE) as mongo:
         yield mongo.get_connection_url()
 
 

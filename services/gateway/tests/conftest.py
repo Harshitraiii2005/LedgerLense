@@ -1,3 +1,4 @@
+import os
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -13,6 +14,10 @@ from gateway.stream import Broadcaster
 from gateway.upstream import Upstream
 from ingest.pipeline import INDEXES, to_document
 from ledgerlens_common.models import Transaction
+
+# Same version as compose/Helm by default. CI overrides it: MongoDB 8.x cannot start on
+# Linux kernel 6.19+ (SERVER-121912, tcmalloc rseq), which GitHub runners now use.
+MONGO_TEST_IMAGE = os.environ.get("MONGO_TEST_IMAGE", "mongo:8.0.34")
 
 SECRET = "test-secret-at-least-32-bytes-long!!"
 BASE = datetime(2026, 10, 1, tzinfo=UTC)
@@ -53,7 +58,7 @@ def make_docs() -> list[dict]:
 def mongo_url():
     from testcontainers.community.mongodb import MongoDbContainer
 
-    with MongoDbContainer("mongo:8.0.34") as mongo:
+    with MongoDbContainer(MONGO_TEST_IMAGE) as mongo:
         yield mongo.get_connection_url()
 
 

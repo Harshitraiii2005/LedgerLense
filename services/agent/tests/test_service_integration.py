@@ -1,5 +1,6 @@
 """QueryService against a real MongoDB: rejected plans never execute, every query is audited."""
 
+import os
 from collections.abc import Iterator
 
 import pytest
@@ -10,12 +11,16 @@ from testcontainers.community.mongodb import MongoDbContainer
 from agent.planner import Plan
 from agent.service import QueryService
 
+# Same version as compose/Helm by default. CI overrides it: MongoDB 8.x cannot start on
+# Linux kernel 6.19+ (SERVER-121912, tcmalloc rseq), which GitHub runners now use.
+MONGO_TEST_IMAGE = os.environ.get("MONGO_TEST_IMAGE", "mongo:8.0.34")
+
 pytestmark = pytest.mark.integration
 
 
 @pytest.fixture(scope="module")
 def mongo_url() -> Iterator[str]:
-    with MongoDbContainer("mongo:8.0.34") as mongo:
+    with MongoDbContainer(MONGO_TEST_IMAGE) as mongo:
         yield mongo.get_connection_url()
 
 
