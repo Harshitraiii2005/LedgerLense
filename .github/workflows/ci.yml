@@ -29,6 +29,18 @@ jobs:
           docker exec -e CB_USER=Administrator -e CB_PASSWORD=ci-password couchbase sh /init.sh
           echo "COUCHBASE_TEST_URL=couchbase://localhost" >> "$GITHUB_ENV"
           echo "COUCHBASE_TEST_PASSWORD=ci-password" >> "$GITHUB_ENV"
+      # Diagnostic: testcontainers removes a crashed container before we can read it, so start the
+      # same image the same way and print what it says.
+      - name: Probe Mongo container
+        continue-on-error: true
+        run: |
+          docker run -d --name mongo-probe -e MONGO_INITDB_ROOT_USERNAME=test -e MONGO_INITDB_ROOT_PASSWORD=test \
+            -e MONGO_DB=test -p 27017 mongo:8.0.34
+          sleep 20
+          docker inspect -f 'status={{.State.Status}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} err={{.State.Error}}' mongo-probe
+          docker logs mongo-probe 2>&1 | tail -40
+          free -m; df -h / | tail -1; nproc; grep -o -m1 -E 'avx2?|avx512f' /proc/cpuinfo | sort -u | tr '\n' ' '
+          docker rm -f mongo-probe
       - name: Lint
         run: uv run ruff check . && uv run ruff format --check .
       - name: Type check
