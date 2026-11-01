@@ -101,29 +101,39 @@ The LLM numbers come from one run each at temperature 0, against MongoDB Atlas (
 
 On kind, a typo in the risk ConfigMap (`50` → `5O`) took risk scoring down for 2 min 45 s once the pod was rescheduled. Consumer lag went from 0 to 1,364, and the backlog drained in under 30 s after the fix, with no data lost. The full timeline is in [docs/postmortem.md](docs/postmortem.md), and the raw log in [docs/incident/](docs/incident/). The prevention, a Helm values schema that rejects the typo, has shipped.
 
-## Cloud deployment (Render + Vercel)
+## Cloud deployment (Render + Vercel, free tier)
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Harshitraiii2005/LedgerLense)
+The free demo runs the **gateway alone** as one Render web service over MongoDB Atlas, with the dashboard on
+Vercel. Kafka, Couchbase, risk and the agent aren't deployed, so the data is a seeded snapshot. Transactions,
+filters, pagination, auth and RBAC all work; the live feed, re-scoring and the NL agent return errors.
 
-| Part | Platform | Config | Notes |
-|---|---|---|---|
-| Gateway (public API + WebSocket) | Render web service, **free** | [render.yaml](render.yaml) | Sleeps when idle; the first request after idle is slow |
-| Kafka, Couchbase, risk, agent | Render private services, **paid** | `render.yaml` | Kafka 1c-2g, Couchbase 2c-4g + 5 GB disk, agent 1c-2g |
-| Ingest, generator | Render background workers, **paid** | `render.yaml` | Generator runs at 2 txn/s to stay within Atlas M0 |
-| MongoDB | MongoDB Atlas M0, **free** | `MONGO_URI` (prompted) | Seed with `MONGO_URI=... uv run python scripts/seed_demo.py` |
-| Dashboard | Vercel Hobby, **free** | [frontend/vercel.json](frontend/vercel.json) | Rewrites `/api/*` to the gateway; the WebSocket connects directly (`LEDGERLENS_WS_BASE`) |
+| Part | Platform | Config |
+|---|---|---|
+| Gateway (API) | Render **Web Service**, Docker, free | root [Dockerfile](Dockerfile), env below |
+| MongoDB | Atlas M0, free | seed once: `MONGO_URI=... uv run python scripts/seed_demo.py` |
+| Dashboard | Vercel Hobby, free | [frontend/vercel.json](frontend/vercel.json), Root Directory `frontend` |
 
-**Steps**
-1. **Render:** click the button above, or go to Dashboard → New → Blueprint → this repo. When prompted, paste the Atlas
-   connection string into each `MONGO_URI`. Optionally add `GOOGLE_API_KEY` or `OPENAI_API_KEY` for the agent's LLM
-   planner; without one it uses the deterministic catalog planner.
-2. **Vercel:** create a project from this repo with Root Directory `frontend` and set
-   `LEDGERLENS_WS_BASE=wss://<gateway>.onrender.com`. If Render didn't name the gateway
-   `ledgerlens-gateway.onrender.com`, update the rewrite destination in `frontend/vercel.json`.
-3. **Log in:** visitors can self-issue **analyst** tokens (`DEV_TOKEN_ROLES=analyst`). Mint admin tokens locally with the
-   Render-generated `JWT_SECRET`: `JWT_SECRET=... uv run python services/gateway/scripts/mint_token.py --sub you --role admin`.
+**1. Render:** New → Web Service → this repo. Runtime **Docker**, Dockerfile path `./Dockerfile`, health check
+path `/health/live`, instance type Free. Environment:
 
-Details, topology reasoning and caveats are in [docs/cloud-deploy.md](docs/cloud-deploy.md).
+| Key | Value |
+|---|---|
+| `SERVICE` | `gateway` (Render passes env vars as Docker build args, which picks the package) |
+| `MONGO_URI` | your Atlas connection string |
+| `JWT_SECRET` | output of `openssl rand -hex 32` |
+| `KAFKA_ENABLED` | `false` (no live feed; readiness checks Mongo only) |
+| `DEV_MODE` | `true` (enables `POST /dev/token` for the dashboard login) |
+| `DEV_TOKEN_ROLES` | `analyst` (mint admin tokens locally with `services/gateway/scripts/mint_token.py`) |
+
+Render's `PORT` is picked up automatically. Free instances sleep when idle, so the first request takes about a minute.
+Check it with `curl https://<service>.onrender.com/health/ready`, which should return
+`{"ready":true,"checks":{"mongo":"ok","kafka":"disabled"}}`.
+
+**2. Vercel:** import this repo, set Root Directory to `frontend`, and deploy. If the Render service isn't named
+`ledgerlens-gateway`, change the `/api` rewrite destination in `frontend/vercel.json` to its URL.
+
+The full topology, with every service on Render (paid private services and workers), is
+[render.yaml](render.yaml), described in [docs/cloud-deploy.md](docs/cloud-deploy.md).
 
 ## Docs
 
@@ -139,4 +149,4 @@ Details, topology reasoning and caveats are in [docs/cloud-deploy.md](docs/cloud
 - **Duplicates:** at-least-once delivery means a retried batch can re-publish to `transactions.flagged`.
 - **Driver:** motor is in maintenance mode, and PyMongo's async client is its successor.
 - **Dev setup:** dev Kafka is a single broker, and the WebSocket JWT is checked only at connect.
-- **Cloud configs:** the Render and Vercel configs haven't been deployed to a live account.
+- **Free cloud demo:** the gateway runs without Kafka, risk or the agent, so the live feed and NL queries are off there.

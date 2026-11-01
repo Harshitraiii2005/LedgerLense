@@ -291,3 +291,12 @@ async def test_health(client):
     r = await client.get("/health/ready")  # no Kafka consumer attached in tests
     assert r.status_code == 503
     assert r.json()["checks"]["mongo"] == "ok"
+
+
+async def test_ready_without_kafka(db, app_factory):
+    # KAFKA_ENABLED=false (gateway-only deploy): readiness depends on Mongo alone.
+    app = app_factory(db, kafka_enabled=False)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app), base_url="http://gw") as c:
+        r = await c.get("/health/ready")
+    assert r.status_code == 200
+    assert r.json()["checks"] == {"mongo": "ok", "kafka": "disabled"}

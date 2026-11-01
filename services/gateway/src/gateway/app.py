@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     mongo_uri: str = "mongodb://localhost:27017"
     mongo_db: str = "ledgerlens"
     kafka_bootstrap: str = "localhost:9092"
+    # false = no live feed. Lets the gateway run alone (e.g. one free Render web service over Atlas).
+    kafka_enabled: bool = True
     risk_url: str = "http://localhost:8001"
     agent_url: str = "http://localhost:8003"
 
@@ -81,9 +83,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         base_url=s.agent_url, timeout=httpx.Timeout(s.agent_timeout_s, connect=1.0)
     )
     broadcaster = Broadcaster(s.ws_queue_size)
-    consumer = make_consumer(s.kafka_bootstrap, TOPIC_FLAGGED)
-    await consumer.start()
-    task = asyncio.create_task(consume_flagged(consumer, broadcaster), name="flagged-consumer")
+    consumer, task = None, None
+    if s.kafka_enabled:
+        consumer = make_consumer(s.kafka_bootstrap, TOPIC_FLAGGED)
+        await consumer.start()
+        task = asyncio.create_task(consume_flagged(consumer, broadcaster), name="flagged-consumer")
     init_state(
         app,
         db=db,
@@ -96,10 +100,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
-        task.cancel()
-        with suppress(asyncio.CancelledError):
-            await task
-        await consumer.stop()
+        if consumer and task:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+            await consumer.stop()
         await risk_http.aclose()
         await agent_http.aclose()
         mongo.close()
@@ -137,12 +142,15 @@ def create_app(settings: Settings | None = None, *, use_lifespan: bool = True) -
             checks["mongo"] = "ok"
         except Exception as e:
             checks["mongo"] = f"error: {type(e).__name__}"
-        try:
-            await asyncio.wait_for(app.state.consumer.topics(), timeout=2)  # metadata round trip
-            checks["kafka"] = "ok"
-        except Exception as e:
-            checks["kafka"] = f"error: {type(e).__name__}"
-        healthy = all(v == "ok" for v in checks.values())
+        if settings.kafka_enabled:
+            try:
+                await asyncio.wait_for(app.state.consumer.topics(), timeout=2)  # metadata round trip
+                checks["kafka"] = "ok"
+            except Exception as e:
+                checks["kafka"] = f"error: {type(e).__name__}"
+        else:
+            checks["kafka"] = "disabled"
+        healthy = all(v in ("ok", "disabled") for v in checks.values())
         return JSONResponse({"ready": healthy, "checks": checks}, status_code=200 if healthy else 503)
 
     if settings.dev_mode:
